@@ -1,0 +1,25 @@
+{
+  "name": "@stockflow/client",
+  "version": "1.0.0",
+  "description": "StockFlow Desktop Application",
+  "main": "main/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "test": "vitest run",
+    "dist": "electron-builder --win"
+  },
+  "dependencies": {
+    "@stockflow/shared": "file:../shared",
+    "decimal.js": "^10.4.3",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "ws": "^8.17.1"
+  },
+  "devDependencies": {
+    "electron": "^30.1.0",
+    "electron-builder": "^24.13.3",
+    "vitest": "^1.6.0"
+  }
+}
+

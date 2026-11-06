@@ -1,0 +1,95 @@
+{
+  "formatVersion": 1,
+  "exportedAt": "2026-11-06T10:00:00.000Z",
+  "revision": 42,
+  "data": {
+    "units": [
+      { "id": "unit-kg", "code": "kg", "name": "Kilograms" },
+      { "id": "unit-nos", "code": "nos", "name": "Numbers / Pieces" }
+    ],
+    "materials": [
+      {
+        "id": "mat-a",
+        "name": "20 mm round bar",
+        "unitId": "unit-kg",
+        "deductBy": "qty_x_piece_weight",
+        "specLabel": "TL",
+        "isActive": true
+      },
+      {
+        "id": "mat-b",
+        "name": "Rotor die cast 58 x 60 ULTRA",
+        "unitId": "unit-nos",
+        "deductBy": "direct",
+        "specLabel": null,
+        "isActive": true
+      }
+    ],
+    "incoming_entries": [
+      {
+        "id": "in-a1",
+        "materialId": "mat-a",
+        "inDate": "2024-11-25",
+        "challanNo": "24/1596",
+        "quantity": "650",
+        "lockSeq": 7
+      },
+      {
+        "id": "in-b1",
+        "materialId": "mat-b",
+        "inDate": "2024-11-14",
+        "challanNo": "24/1509",
+        "quantity": "500",
+        "lockSeq": 3
+      },
+      {
+        "id": "in-b2",
+        "materialId": "mat-b",
+        "inDate": "2024-12-12",
+        "challanNo": "24/1716",
+        "quantity": "620",
+        "lockSeq": 3
+      },
+      {
+        "id": "in-b3",
+        "materialId": "mat-b",
+        "inDate": "2025-01-02",
+        "challanNo": "24/1917",
+        "quantity": "541",
+        "lockSeq": 3
+      }
+    ],
+    "outgoing_transactions": [
+      { "id": "out-a1", "incomingEntryId": "in-a1", "outDate": "2024-11-25", "challanNo": "690", "rowNo": 1, "qty": "85", "pieceWeight": "0.7", "specValue": "271", "totalWeight": "59.5", "deducted": "59.5" },
+      { "id": "out-a2", "incomingEntryId": "in-a1", "outDate": "2024-11-27", "challanNo": "695", "rowNo": 1, "qty": "100", "pieceWeight": "0.7", "specValue": "271", "totalWeight": "70", "deducted": "70" },
+      { "id": "out-a3", "incomingEntryId": "in-a1", "outDate": "2024-11-28", "challanNo": "698", "rowNo": 1, "qty": "115", "pieceWeight": "0.7", "specValue": "271", "totalWeight": "80.5", "deducted": "80.5" },
+      { "id": "out-a4", "incomingEntryId": "in-a1", "outDate": "2024-11-28", "challanNo": "698", "rowNo": 2, "qty": "235", "pieceWeight": "0.59", "specValue": "225.5", "totalWeight": "138.65", "deducted": "138.65" },
+      { "id": "out-a5", "incomingEntryId": "in-a1", "outDate": "2024-11-29", "challanNo": "703", "rowNo": 1, "qty": "104", "pieceWeight": "0.7", "specValue": "271", "totalWeight": "72.8", "deducted": "72.8" },
+      { "id": "out-a6", "incomingEntryId": "in-a1", "outDate": "2024-12-04", "challanNo": "714", "rowNo": 1, "qty": "124", "pieceWeight": "0.7", "specValue": "271", "totalWeight": "86.8", "deducted": "86.8" },
+      { "id": "out-a7", "incomingEntryId": "in-a1", "outDate": "2024-12-09", "challanNo": "727", "rowNo": 1, "qty": "240", "pieceWeight": "0.59", "specValue": "225.5", "totalWeight": "141.6", "deducted": "141.6" },
+      { "id": "out-b1", "incomingEntryId": "in-b1", "outDate": "2024-11-28", "challanNo": "698", "rowNo": 1, "qty": "235", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "235" },
+      { "id": "out-b2", "incomingEntryId": "in-b1", "outDate": "2024-12-09", "challanNo": "727", "rowNo": 1, "qty": "264", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "264" },
+      { "id": "out-b3", "incomingEntryId": "in-b1", "outDate": "2024-12-16", "challanNo": "747", "rowNo": 1, "qty": "1", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "1" },
+      { "id": "out-b4", "incomingEntryId": "in-b2", "outDate": "2024-12-16", "challanNo": "747", "rowNo": 1, "qty": "315", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "315" },
+      { "id": "out-b5", "incomingEntryId": "in-b2", "outDate": "2024-12-18", "challanNo": "751", "rowNo": 1, "qty": "55", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "55" },
+      { "id": "out-b6", "incomingEntryId": "in-b2", "outDate": "2024-12-27", "challanNo": "776", "rowNo": 1, "qty": "250", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "250" },
+      { "id": "out-b7", "incomingEntryId": "in-b3", "outDate": "2025-01-02", "challanNo": "788", "rowNo": 1, "qty": "20", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "20" },
+      { "id": "out-b8", "incomingEntryId": "in-b3", "outDate": "2025-01-04", "challanNo": "793", "rowNo": 1, "qty": "180", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "180" },
+      { "id": "out-b9", "incomingEntryId": "in-b3", "outDate": "2025-01-10", "challanNo": "810", "rowNo": 1, "qty": "341", "pieceWeight": null, "specValue": null, "totalWeight": null, "deducted": "341" }
+    ],
+    "parties": [
+      { "id": "party-1", "name": "Harsh", "isActive": true }
+    ],
+    "products": [
+      { "id": "prod-1", "partyId": "party-1", "name": "0.5 HP ultra rotor SL60 TL271", "isActive": true }
+    ],
+    "bom_lines": [
+      { "id": "bom-1", "productId": "prod-1", "materialId": "mat-a", "consumption": "0.700", "specValue": "271" },
+      { "id": "bom-2", "productId": "prod-1", "materialId": "mat-b", "consumption": "1", "specValue": null }
+    ],
+    "users": [
+      { "id": "user-admin", "username": "admin", "passwordHash": "$2a$12$mockhash", "role": "admin", "isActive": true, "color": "#635BFF" }
+    ]
+  }
+}
+

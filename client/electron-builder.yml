@@ -1,0 +1,14 @@
+appId: com.stockflow.app
+productName: StockFlow
+directories:
+  output: dist
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+files:
+  - "**/*"
+  - "!test/**"
+  - "!src/**"
+

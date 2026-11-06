@@ -1,0 +1,17 @@
+{
+  "name": "@stockflow/shared",
+  "version": "1.0.0",
+  "description": "Shared calculation logic and constants for StockFlow",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "decimal.js": "^10.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
+}
+

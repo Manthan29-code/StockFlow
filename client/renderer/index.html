@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockFlow</title>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <div id="app-container">
+    <!-- Sidebar -->
+    <aside id="sidebar" style="display: none;">
+      <div class="sidebar-header">
+        <div class="app-logo">StockFlow</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Stock & Production</div>
+        <a href="#dashboard" class="nav-item" data-route="dashboard">Dashboard</a>
+        <a href="#ledger" class="nav-item" data-route="ledger">Stock Ledger</a>
+        <a href="#calculator" class="nav-item" data-route="calculator">BOM Calculator</a>
+
+        <div class="admin-only" style="display: none;">
+          <div class="nav-section-title">Management</div>
+          <a href="#materials" class="nav-item" data-route="materials">Materials & Units</a>
+          <a href="#parties-products" class="nav-item" data-route="parties-products">Parties & Products</a>
+          <a href="#bom-editor" class="nav-item" data-route="bom-editor">BOM Editor</a>
+        </div>
+
+        <div class="nav-section-title">Data & Tools</div>
+        <a href="#export" class="nav-item" data-route="export">Export Excel</a>
+        
+        <div class="admin-only" style="display: none;">
+          <a href="#import" class="nav-item" data-route="import">Import Excel</a>
+          <a href="#users" class="nav-item" data-route="users">User Access</a>
+          <a href="#audit" class="nav-item" data-route="audit">Audit Log</a>
+          <a href="#settings" class="nav-item" data-route="settings">Backup & Settings</a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="logout-btn" class="btn btn-secondary btn-sm" style="width: 100%;">Log Out</button>
+      </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div id="main-wrapper">
+      <!-- Connection / Offline Banner -->
+      <div id="banner-container"></div>
+
+      <!-- Header -->
+      <header id="header" style="display: none;">
+        <div class="header-title-container">
+          <h2 id="current-page-title" class="page-title">Dashboard</h2>
+        </div>
+        <div class="header-actions">
+          <div id="connection-status" class="connection-indicator">
+            <span class="status-dot connected"></span>
+            <span id="connection-status-text">Connected</span>
+          </div>
+          <div id="header-user-badge" class="user-profile-badge">
+            <div id="user-avatar" class="user-avatar-badge" style="background-color: #635BFF;">A</div>
+            <span id="user-name" style="font-weight: 500;">Admin</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Dynamic Content -->
+      <main id="content"></main>
+    </div>
+  </div>
+
+  <!-- Modal Container -->
+  <div id="modal-container"></div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/format.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/components/toast.js"></script>
+  <script src="js/components/banner.js"></script>
+  <script src="js/components/badge.js"></script>
+  <script src="js/components/modal.js"></script>
+  <script src="js/components/form.js"></script>
+  <script src="js/pages/login.js"></script>
+  <script src="js/pages/dashboard.js"></script>
+  <script src="js/pages/ledger.js"></script>
+  <script src="js/pages/materials.js"></script>
+  <script src="js/pages/partiesProducts.js"></script>
+  <script src="js/pages/bomEditor.js"></script>
+  <script src="js/pages/calculator.js"></script>
+  <script src="js/pages/exportPage.js"></script>
+  <script src="js/pages/importWizard.js"></script>
+  <script src="js/pages/users.js"></script>
+  <script src="js/pages/audit.js"></script>
+  <script src="js/pages/settings.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
