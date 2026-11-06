@@ -9,6 +9,24 @@
     "test": "vitest run",
     "dist": "electron-builder --win"
   },
+  "build": {
+    "appId": "com.stockflow.app",
+    "productName": "StockFlow",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    }
+  },
   "dependencies": {
     "@stockflow/shared": "file:../shared",
     "decimal.js": "^10.4.3",
@@ -22,4 +40,3 @@
     "vitest": "^1.6.0"
   }
 }
-

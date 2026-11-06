@@ -1,5 +1,6 @@
 const { app, BrowserWindow, session } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { registerAllIpc } = require('./ipc');
 const { initSyncManager, start: startSync, stop: stopSync, onStatus, onSyncEvent } = require('./syncManager');
 const { setOnUnauthorized } = require('./httpClient');
@@ -22,12 +23,17 @@ if (!gotTheLock) {
 }
 
 function createWindow() {
+  const iconIco = path.join(__dirname, '../build/icon.ico');
+  const iconPng = path.join(__dirname, '../build/icon.png');
+  const appIcon = fs.existsSync(iconIco) ? iconIco : (fs.existsSync(iconPng) ? iconPng : undefined);
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 850,
     minWidth: 1024,
     minHeight: 700,
     title: 'StockFlow - Manufacturing Inventory & BOM',
+    icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

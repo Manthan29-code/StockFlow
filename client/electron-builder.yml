@@ -2,13 +2,16 @@ appId: com.stockflow.app
 productName: StockFlow
 directories:
   output: dist
+  buildResources: build
 win:
   target: nsis
+  icon: build/icon.ico
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
 files:
   - "**/*"
   - "!test/**"
   - "!src/**"
-
