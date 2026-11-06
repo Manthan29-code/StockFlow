@@ -29,8 +29,10 @@ async function clearDatabase() {
 async function setupTestAuth() {
   const hash = await bcrypt.hash('password123', 4);
 
-  adminUser = await prisma.user.create({
-    data: {
+  adminUser = await prisma.user.upsert({
+    where: { username: 'testadmin' },
+    update: { passwordHash: hash, role: ROLES.ADMIN, isActive: true },
+    create: {
       username: 'testadmin',
       passwordHash: hash,
       role: ROLES.ADMIN,
@@ -39,8 +41,10 @@ async function setupTestAuth() {
     },
   });
 
-  staffUser = await prisma.user.create({
-    data: {
+  staffUser = await prisma.user.upsert({
+    where: { username: 'teststaff' },
+    update: { passwordHash: hash, role: ROLES.STAFF, isActive: true },
+    create: {
       username: 'teststaff',
       passwordHash: hash,
       role: ROLES.STAFF,
@@ -52,12 +56,17 @@ async function setupTestAuth() {
   adminToken = jwt.sign({ userId: adminUser.id }, config.JWT_SECRET, { expiresIn: '1d' });
   staffToken = jwt.sign({ userId: staffUser.id }, config.JWT_SECRET, { expiresIn: '1d' });
 
-  // Seed default units
-  await prisma.unit.createMany({
-    data: [
-      { code: 'kg', name: 'Kilograms' },
-      { code: 'nos', name: 'Pieces' },
-    ],
+  // Seed default units safely with upsert
+  await prisma.unit.upsert({
+    where: { code: 'kg' },
+    update: {},
+    create: { code: 'kg', name: 'Kilograms' },
+  });
+
+  await prisma.unit.upsert({
+    where: { code: 'nos' },
+    update: {},
+    create: { code: 'nos', name: 'Pieces' },
   });
 
   return {
@@ -77,4 +86,3 @@ module.exports = {
   getAdminUser: () => adminUser,
   getStaffUser: () => staffUser,
 };
-

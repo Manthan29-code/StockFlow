@@ -44,7 +44,7 @@ describe('Backup & Restore (Section 3.2)', () => {
     expect(backupPayload.formatVersion).toBe(1);
     expect(backupPayload.data.materials.length).toBeGreaterThan(0);
 
-    // 2. Clear database
+    // 2. Clear database & re-setup auth so we have an admin to execute restore
     await clearDatabase();
     await setupTestAuth();
 
@@ -57,13 +57,19 @@ describe('Backup & Restore (Section 3.2)', () => {
     expect(restoreRes.status).toBe(200);
     expect(restoreRes.body.success).toBe(true);
 
-    // 4. Verify material exists
+    // 4. Log in as the restored admin (the restore replaced users with the backed-up users)
+    const loginRes = await request(app)
+      .post('/api/auth/login')
+      .send({ username: 'testadmin', password: 'password123' });
+    expect(loginRes.status).toBe(200);
+    const postRestoreToken = loginRes.body.token;
+
+    // 5. Verify material exists using the restored user's token
     const checkMat = await request(app)
       .get(`/api/materials/${materialId}`)
-      .set('Authorization', `Bearer ${getAdminToken()}`);
+      .set('Authorization', `Bearer ${postRestoreToken}`);
 
     expect(checkMat.status).toBe(200);
     expect(checkMat.body.name).toBe('Backup Test Brass');
   });
 });
-

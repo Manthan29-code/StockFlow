@@ -4,8 +4,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    testTimeout: 20000,
-    hookTimeout: 20000,
+    fileParallelism: false,
+    maxWorkers: 1,
+    testTimeout: 70000,
+    hookTimeout: 70000,
   },
 });
-

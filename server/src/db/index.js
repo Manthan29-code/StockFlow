@@ -1,13 +1,14 @@
 const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
 const config = require('../config');
-const logger = require('../utils/logger');
+
+const adapter = new PrismaPg({
+  connectionString: config.DATABASE_URL,
+  max: config.DB_POOL_MAX || 5,
+});
 
 const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: config.DATABASE_URL,
-    },
-  },
+  adapter,
   log: config.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
 });
 
