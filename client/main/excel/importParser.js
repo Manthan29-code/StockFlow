@@ -224,11 +224,22 @@ async function parseMaterialWorkbook(source, material, customColumnMap = null) {
     entry.recalculatedBalance = ledger.finalBalance;
     entry.status = ledger.status;
 
-    // Check sheet balance mismatch
-    if (entry.sheetBalance !== null && entry.sheetBalance !== undefined) {
-      if (toDecimal(entry.sheetBalance).minus(toDecimal(entry.recalculatedBalance)).abs().gt(0.01)) {
+    // Check sheet balance mismatch against the final row's sheet balance
+    let finalSheetBalance = null;
+    for (let i = entry.outgoingRows.length - 1; i >= 0; i--) {
+      if (entry.outgoingRows[i].sheetBalance !== null && entry.outgoingRows[i].sheetBalance !== undefined) {
+        finalSheetBalance = entry.outgoingRows[i].sheetBalance;
+        break;
+      }
+    }
+    if (finalSheetBalance === null || finalSheetBalance === undefined) {
+      finalSheetBalance = entry.sheetBalance;
+    }
+
+    if (finalSheetBalance !== null && finalSheetBalance !== undefined) {
+      if (toDecimal(finalSheetBalance).minus(toDecimal(entry.recalculatedBalance)).abs().gt(0.01)) {
         warnings.push(
-          `Entry '${entry.challanNo}': sheet balance (${entry.sheetBalance}) differs from calculated (${entry.recalculatedBalance})`
+          `Entry '${entry.challanNo}': sheet balance (${finalSheetBalance}) differs from calculated (${entry.recalculatedBalance})`
         );
       }
     }
