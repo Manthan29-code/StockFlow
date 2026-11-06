@@ -682,9 +682,6 @@ const LedgerPage = {
           return false;
         }
       },
-        await this.loadLedger();
-        return true;
-      },
     });
   },
 

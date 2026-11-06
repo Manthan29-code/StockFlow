@@ -102,7 +102,7 @@
   padding: 16px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
-  margin-top: auto;
+  margin-top: 18px;
   background-color: var(--secondary);
 }
 
