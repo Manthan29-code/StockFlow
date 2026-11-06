@@ -13,6 +13,11 @@ const Api = {
     try {
       return await window.api.request({ method, path, body, query });
     } catch (err) {
+      if (err.message && err.message.includes("Error invoking remote method 'api:request': Error: ")) {
+        err.message = err.message.replace("Error invoking remote method 'api:request': Error: ", '');
+      } else if (err.message && err.message.includes("Error invoking remote method 'api:request': ")) {
+        err.message = err.message.replace("Error invoking remote method 'api:request': ", '');
+      }
       if (err.status === 409 && err.code === 'VERSION_CONFLICT') {
         FormHelper.showConflictPrompt();
       }

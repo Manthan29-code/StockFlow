@@ -34,6 +34,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
+  // Bind sidebar toggle button
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  const sidebar = document.getElementById('sidebar');
+  if (toggleBtn && sidebar) {
+    toggleBtn.onclick = () => {
+      sidebar.classList.toggle('collapsed');
+      localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+    };
+    if (localStorage.getItem('sidebar_collapsed') === 'true') {
+      sidebar.classList.add('collapsed');
+    }
+  }
+
   // Check existing session
   try {
     const user = await window.api.me();

@@ -27,11 +27,12 @@ const LedgerPage = {
 
       <!-- Filters -->
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
           <button class="btn btn-sm ${this.currentFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all">All Entries</button>
           <button class="btn btn-sm ${this.currentFilter === 'partial' ? 'btn-primary' : 'btn-secondary'}" data-filter="partial">Open / Partial</button>
           <button class="btn btn-sm ${this.currentFilter === 'not_issued' ? 'btn-primary' : 'btn-secondary'}" data-filter="not_issued">Not Issued</button>
           <button class="btn btn-sm ${this.currentFilter === 'closed' ? 'btn-primary' : 'btn-secondary'}" data-filter="closed">Closed</button>
+          <button class="btn btn-sm ${this.currentFilter === 'incoming_only' ? 'btn-primary' : 'btn-secondary'}" data-filter="incoming_only" style="margin-left: 6px; border-left: 2px solid var(--border);">Incoming Challans (Manage)</button>
         </div>
         <div style="font-size: 12.5px; color: var(--neutral);" id="ledger-entry-counts"></div>
       </div>
@@ -122,6 +123,66 @@ const LedgerPage = {
     const specLabel = material.specLabel || 'TL';
     const unitCode = material.unit ? material.unit.code : '';
 
+    if (this.currentFilter === 'incoming_only') {
+      document.getElementById('ledger-entry-counts').textContent = `Showing ${entries.length} incoming challans`;
+      container.innerHTML = `
+        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
+          <div style="padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13.5px; color: var(--secondary); display: flex; justify-content: space-between; align-items: center;">
+            <span>Incoming Challans Directory (${entries.length} total shipments)</span>
+            <span style="font-size: 12px; font-weight: 400; color: var(--neutral);">Click Edit or Delete on any shipment</span>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="data-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th style="width: 120px;">IN DATE</th>
+                  <th style="width: 140px;">CHALLAN NO IN</th>
+                  <th class="num-cell" style="width: 130px;">IN QUANTITY (${unitCode})</th>
+                  <th>SUPPLIER</th>
+                  <th class="num-cell" style="width: 140px;">BALANCE (${unitCode})</th>
+                  <th style="width: 130px;">STATUS</th>
+                  <th style="width: 70px; text-align: center;">BY</th>
+                  <th style="width: 200px; text-align: right;">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${entries.length === 0 ? `
+                  <tr><td colspan="8" style="text-align: center; color: var(--neutral); padding: 30px;">No incoming entries found.</td></tr>
+                ` : entries.map((entry) => {
+                  const statusClass = entry.status === 'closed' ? 'chip-success' : entry.status === 'partial' ? 'chip-warning' : 'chip-neutral';
+                  const statusLabel = entry.status === 'closed' ? 'Closed' : entry.status === 'partial' ? 'Partially Issued' : 'Not Issued';
+                  return `
+                    <tr>
+                      <td>${Format.date(entry.inDate)}</td>
+                      <td class="mono font-bold">${entry.challanNo}</td>
+                      <td class="num-cell font-bold">${Format.number(entry.quantity)}</td>
+                      <td>${entry.supplier || '-'}</td>
+                      <td class="num-cell font-bold" style="color: ${Number(entry.balance) > 0 ? 'var(--primary)' : 'var(--neutral)'};">
+                        ${Format.number(entry.balance)}
+                      </td>
+                      <td><span class="chip ${statusClass}">${statusLabel}</span></td>
+                      <td style="text-align: center;">${Badge.render(entry.created_by, entry.createdAt)}</td>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                          <button class="btn btn-primary btn-sm add-out-btn" data-entry-id="${entry.id}" data-entry-balance="${entry.balance}">+ Issue</button>
+                          ${State.isAdmin() ? `
+                            <button class="btn btn-secondary btn-sm edit-in-btn" data-entry-id="${entry.id}">Edit</button>
+                            <button class="btn btn-secondary btn-sm delete-in-btn" data-entry-id="${entry.id}" style="color: var(--error);">Delete</button>
+                          ` : ''}
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+      this.bindRowEvents();
+      return;
+    }
+
     const filtered = entries.filter((e) => {
       if (this.currentFilter === 'all') return true;
       if (this.currentFilter === 'partial') return e.status === 'partial';
@@ -178,7 +239,7 @@ const LedgerPage = {
               ${Badge.render(entry.created_by, entry.createdAt)}
             </div>
 
-            <div style="display: flex; gap: 8px; align-items: center;">
+            <div style="display: flex; gap: 6px; align-items: center; white-space: nowrap;">
               <button class="btn btn-primary btn-sm add-out-btn" data-entry-id="${entry.id}" data-entry-balance="${entry.balance}">
                 + Issue Material (OUT)
               </button>
@@ -207,7 +268,7 @@ const LedgerPage = {
                   `}
                   <th class="num-cell" style="width: 130px; background-color: #EDF2F7; font-weight: 700; color: var(--secondary);">RUNNING BAL</th>
                   <th style="width: 60px; text-align: center;">BY</th>
-                  ${State.isAdmin() ? '<th style="width: 100px; text-align: right;">ACTIONS</th>' : ''}
+                  ${State.isAdmin() ? '<th style="width: 110px; text-align: right;">ACTIONS</th>' : ''}
                 </tr>
               </thead>
               <tbody>
@@ -230,9 +291,11 @@ const LedgerPage = {
                     </td>
                     <td style="text-align: center;">${Badge.render(row.created_by, row.createdAt)}</td>
                     ${State.isAdmin() ? `
-                      <td style="text-align: right;">
-                        <button class="btn btn-secondary btn-sm edit-out-btn" data-row-id="${row.id}" style="padding: 2px 6px; font-size: 11px;">Edit</button>
-                        <button class="btn btn-secondary btn-sm delete-out-btn" data-row-id="${row.id}" style="padding: 2px 6px; font-size: 11px; color: var(--error);">Del</button>
+                      <td style="text-align: right; white-space: nowrap;">
+                        <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                          <button class="btn btn-secondary btn-sm edit-out-btn" data-row-id="${row.id}" style="padding: 3px 8px; font-size: 11px;">Edit</button>
+                          <button class="btn btn-secondary btn-sm delete-out-btn" data-row-id="${row.id}" style="padding: 3px 8px; font-size: 11px; color: var(--error);">Del</button>
+                        </div>
                       </td>
                     ` : ''}
                   </tr>
@@ -382,8 +445,8 @@ const LedgerPage = {
           <div class="form-row">
             ${hasSpec ? `
               <div class="form-group">
-                <label class="form-label">${specLabel}</label>
-                <input type="text" name="specValue" class="form-control" placeholder="e.g. 271">
+                <label class="form-label">${specLabel} <span style="font-weight: 400; color: var(--neutral); font-size: 11px;">(Optional)</span></label>
+                <input type="text" name="specValue" class="form-control" placeholder="Optional ${specLabel}">
               </div>
             ` : ''}
             <div class="form-group">
@@ -417,24 +480,38 @@ const LedgerPage = {
       confirmText: 'Commit Issue',
       onConfirm: async () => {
         const form = document.getElementById('add-outgoing-form');
+        if (!form.reportValidity()) {
+          return false;
+        }
+
         const outDate = form.outDate.value;
         const challanNo = form.challanNo.value.trim();
         const qty = form.qty.value;
         const pieceWeight = form.pieceWeight ? form.pieceWeight.value : null;
         const specValue = form.specValue ? form.specValue.value.trim() : null;
 
-        await Api.post('/api/outgoing', {
-          incomingEntryId: entryId,
-          outDate,
-          challanNo,
-          qty,
-          pieceWeight: pieceWeight || null,
-          specValue: specValue || null,
-        });
+        if (!challanNo) {
+          Toast.show('Outgoing Challan No is required', 'warning');
+          return false;
+        }
 
-        Toast.show('Outgoing row recorded successfully', 'success');
-        await this.loadLedger();
-        return true;
+        try {
+          await Api.post('/api/outgoing', {
+            incomingEntryId: entryId,
+            outDate,
+            challanNo,
+            qty,
+            pieceWeight: pieceWeight || null,
+            specValue: specValue || null,
+          });
+
+          Toast.show('Outgoing row recorded successfully', 'success');
+          await this.loadLedger();
+          return true;
+        } catch (err) {
+          Toast.show(err.message || 'Failed to record outgoing issue', 'error');
+          return false;
+        }
       },
     });
 
@@ -569,8 +646,8 @@ const LedgerPage = {
           <div class="form-row">
             ${hasSpec ? `
               <div class="form-group">
-                <label class="form-label">${material.specLabel}</label>
-                <input type="text" name="specValue" class="form-control" value="${targetRow.specValue || ''}">
+                <label class="form-label">${material.specLabel} <span style="font-weight: 400; color: var(--neutral); font-size: 11px;">(Optional)</span></label>
+                <input type="text" name="specValue" class="form-control" value="${targetRow.specValue || ''}" placeholder="Optional ${material.specLabel}">
               </div>
             ` : ''}
             <div class="form-group">
@@ -579,7 +656,7 @@ const LedgerPage = {
             </div>
             <div class="form-group">
               <label class="form-label">Piece Weight</label>
-              <input type="number" step="any" name="pieceWeight" class="form-control" value="${targetRow.pieceWeight || ''}">
+              <input type="number" step="any" name="pieceWeight" class="form-control" value="${targetRow.pieceWeight || ''}" placeholder="Optional">
             </div>
           </div>
         </form>
@@ -587,15 +664,24 @@ const LedgerPage = {
       confirmText: 'Save Row',
       onConfirm: async () => {
         const form = document.getElementById('edit-outgoing-form');
-        await Api.patch(`/api/outgoing/${rowId}`, {
-          outDate: form.outDate.value,
-          challanNo: form.challanNo.value.trim(),
-          qty: form.qty.value,
-          pieceWeight: form.pieceWeight.value ? form.pieceWeight.value : null,
-          specValue: form.specValue ? form.specValue.value.trim() : null,
-          version: targetRow.version,
-        });
-        Toast.show('Outgoing row updated', 'success');
+        if (!form.reportValidity()) return false;
+        try {
+          await Api.patch(`/api/outgoing/${rowId}`, {
+            outDate: form.outDate.value,
+            challanNo: form.challanNo.value.trim(),
+            qty: form.qty.value,
+            pieceWeight: form.pieceWeight.value ? form.pieceWeight.value : null,
+            specValue: form.specValue ? form.specValue.value.trim() : null,
+            version: targetRow.version,
+          });
+          Toast.show('Outgoing row updated', 'success');
+          await this.loadLedger();
+          return true;
+        } catch (err) {
+          Toast.show(err.message || 'Failed to update row', 'error');
+          return false;
+        }
+      },
         await this.loadLedger();
         return true;
       },
