@@ -278,11 +278,19 @@ const LedgerPage = {
   },
 
   openAddIncomingModal() {
+    const material = (this.ledgerData && this.ledgerData.material) ||
+      (State.materialsCache && State.materialsCache.find((m) => m.id === this.currentMaterialId));
+
+    if (!material) {
+      Toast.show('Please select a material first', 'warning');
+      return;
+    }
+
     const today = new Date().toISOString().substring(0, 10);
-    const unitCode = this.ledgerData.material.unit ? this.ledgerData.material.unit.code : '';
+    const unitCode = material.unit ? material.unit.code : '';
 
     Modal.open({
-      title: `Add Incoming Entry — ${this.ledgerData.material.name}`,
+      title: `Add Incoming Entry — ${material.name}`,
       bodyHtml: `
         <form id="add-incoming-form">
           <div class="form-row">

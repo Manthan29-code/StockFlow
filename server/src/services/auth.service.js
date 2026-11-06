@@ -204,6 +204,53 @@ async function resetPassword(actorId, id, newPassword) {
   return { success: true };
 }
 
+async function deleteUser(actorId, id) {
+  if (actorId === id) {
+    throw ForbiddenError('You cannot delete your own account');
+  }
+
+  const user = await usersRepo.findById(id);
+  if (!user) {
+    throw NotFoundError('User not found');
+  }
+
+  if (user.role === ROLES.ADMIN) {
+    const activeAdminCount = await usersRepo.countActiveAdmins();
+    if (activeAdminCount <= 1) {
+      throw ForbiddenError('Cannot delete the last active administrator');
+    }
+  }
+
+  try {
+    const revision = await withTransaction(async (tx) => {
+      await tx.user.delete({ where: { id } });
+      const rev = await metaRepo.bumpRevision(tx);
+      await auditRepo.createAuditEntry({
+        userId: actorId,
+        action: 'DELETE',
+        entity: 'users',
+        entityId: id,
+        before: mapUser(user),
+      }, tx);
+      return rev;
+    });
+
+    broadcast({
+      type: 'changed',
+      revision,
+      entity: 'users',
+      by: actorId,
+    });
+
+    return { success: true };
+  } catch (err) {
+    if (err.code === 'P2003' || (err.message && err.message.includes('Foreign key'))) {
+      throw ValidationError('Cannot delete user who has created inventory entries or transactions. Disable the user account instead.');
+    }
+    throw err;
+  }
+}
+
 module.exports = {
   login,
   changePassword,
@@ -211,5 +258,6 @@ module.exports = {
   createUser,
   updateUser,
   resetPassword,
+  deleteUser,
 };
 

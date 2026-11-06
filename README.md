@@ -147,9 +147,9 @@ cd ..
    ```
 
 3. **Log In:**
-   - **Server URL:** `http://localhost:3000`
    - **Username:** `admin`
    - **Password:** The password set in `SEED_ADMIN_PASSWORD` (defaults to `change-me-now`).
+   *(The server URL is automatically read from `client/.env` at build/launch time).*
 
 ---
 

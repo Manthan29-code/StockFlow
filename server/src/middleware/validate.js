@@ -13,7 +13,16 @@ function validate(schema, source = 'body') {
       const firstErrorMessage = result.error.errors[0]?.message || 'Validation failed';
       return next(ValidationError(firstErrorMessage, details));
     }
-    req[source] = result.data;
+    try {
+      req[source] = result.data;
+    } catch (err) {
+      Object.defineProperty(req, source, {
+        value: result.data,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    }
     next();
   };
 }

@@ -14,21 +14,22 @@ function normalizeDate(cellValue) {
   }
 
   const str = String(cellValue).trim();
+
+  // Match ISO YYYY-MM-DD
+  const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const y = isoMatch[1];
+    const m = String(isoMatch[2]).padStart(2, '0');
+    const d = String(isoMatch[3]).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   // Match DD-MM-YYYY or DD/MM/YYYY
-  const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  const dmyMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
   if (dmyMatch) {
     const d = String(dmyMatch[1]).padStart(2, '0');
     const m = String(dmyMatch[2]).padStart(2, '0');
     const y = dmyMatch[3];
-    return `${y}-${m}-${d}`;
-  }
-
-  // Match YYYY-MM-DD
-  const ymdMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
-  if (ymdMatch) {
-    const y = ymdMatch[1];
-    const m = String(ymdMatch[2]).padStart(2, '0');
-    const d = String(ymdMatch[3]).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }
 
@@ -80,8 +81,8 @@ async function parseMaterialWorkbook(source, material, customColumnMap = null) {
     if (headerRowIndex !== -1) return;
     const values = row.values;
     for (let colIdx = 1; colIdx < values.length; colIdx++) {
-      const text = normalizeText(values[colIdx]).toUpperCase();
-      if (text.includes('IN DATE')) {
+      const text = normalizeText(values[colIdx]).toUpperCase().replace(/[^A-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (text.includes('IN DATE') || text === 'DATE IN') {
         headerRowIndex = rowNumber;
         break;
       }
@@ -94,26 +95,35 @@ async function parseMaterialWorkbook(source, material, customColumnMap = null) {
 
   // 2. Detect Columns
   const headerRow = worksheet.getRow(headerRowIndex);
-  const specLabelNorm = (material.specLabel || 'TL').toUpperCase();
+  const specLabelNorm = (material.specLabel || 'TL').toUpperCase().replace(/[^A-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
 
   headerRow.eachCell((cell, colNumber) => {
-    const text = normalizeText(cell.value).toUpperCase();
-    if (text.includes('IN DATE')) detectedHeaders.inDate = colNumber;
-    else if (text.includes('CH NO IN') || text.includes('CHALLAN NO IN')) detectedHeaders.chNoIn = colNumber;
-    else if (text.includes('OUT DATE')) detectedHeaders.outDate = colNumber;
-    else if (text.includes('CH NO OUT') || text.includes('CHALLAN NO OUT')) detectedHeaders.chNoOut = colNumber;
-    else if (text === specLabelNorm || text === 'TL' || text.includes('LENGTH') || text.includes('SIZE')) {
+    const rawText = normalizeText(cell.value);
+    const text = rawText.toUpperCase().replace(/[^A-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+
+    if (text.includes('IN DATE') || text === 'DATE IN') {
+      detectedHeaders.inDate = colNumber;
+    } else if (text.includes('CH NO IN') || text.includes('CHALLAN NO IN') || text.includes('CHALLAN IN') || text === 'CH NO') {
+      if (!detectedHeaders.chNoIn) detectedHeaders.chNoIn = colNumber;
+    } else if (text.includes('OUT DATE') || text === 'DATE OUT') {
+      detectedHeaders.outDate = colNumber;
+    } else if (text.includes('CH NO OUT') || text.includes('CHALLAN NO OUT') || text.includes('CHALLAN OUT') || text.includes('CH NO') && text.includes('OUT')) {
+      detectedHeaders.chNoOut = colNumber;
+    } else if (text === specLabelNorm || text === 'TL' || text.includes('LENGTH') || text.includes('SIZE')) {
       if (!detectedHeaders.specValue) detectedHeaders.specValue = colNumber;
-    } else if (text === 'QTY' || text === 'OUT QTY') detectedHeaders.outQty = colNumber;
-    else if (text === 'WIGHT' || text === 'WEIGHT' || text === 'WT' || text.includes('PIECE')) {
+    } else if (text === 'QTY' || text === 'OUT QTY' || text === 'QUANTITY' || text === 'PCS') {
+      detectedHeaders.outQty = colNumber;
+    } else if (text === 'WIGHT' || text === 'WEIGHT' || text === 'WT' || text.includes('PIECE') || text.includes('PC WT')) {
       if (!detectedHeaders.pieceWeight && detectedHeaders.outQty) {
         detectedHeaders.pieceWeight = colNumber;
       } else if (!detectedHeaders.inQty) {
         detectedHeaders.inQty = colNumber;
       }
-    } else if (text.includes('TOTAL')) detectedHeaders.totalWeight = colNumber;
-    else if (text.includes('BALANCE') || text.includes('BAL QTY')) detectedHeaders.balance = colNumber;
-    else if (text.includes('IN QTY') || text.includes('QUANTITY') || text === 'WEIGHT') {
+    } else if (text.includes('TOTAL')) {
+      detectedHeaders.totalWeight = colNumber;
+    } else if (text.includes('BALANCE') || text.includes('BAL QTY') || text === 'BAL') {
+      detectedHeaders.balance = colNumber;
+    } else if (text.includes('IN QTY') || text.includes('QUANTITY') || text === 'WEIGHT' || text === 'WIGHT') {
       if (!detectedHeaders.inQty) detectedHeaders.inQty = colNumber;
     }
   });

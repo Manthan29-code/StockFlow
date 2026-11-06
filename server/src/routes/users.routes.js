@@ -46,5 +46,15 @@ router.post('/users/:id/reset-password', auth, requireAdmin, validate(resetPassw
   }
 });
 
+// 8. DELETE /users/:id (A)
+router.delete('/users/:id', auth, requireAdmin, async (req, res, next) => {
+  try {
+    const result = await authService.deleteUser(req.user.id, req.params.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
 

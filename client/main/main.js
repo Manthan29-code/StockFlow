@@ -4,6 +4,7 @@ const fs = require('fs');
 const { registerAllIpc } = require('./ipc');
 const { initSyncManager, start: startSync, stop: stopSync, onStatus, onSyncEvent } = require('./syncManager');
 const { setOnUnauthorized } = require('./httpClient');
+const { initSession } = require('./session');
 
 let mainWindow = null;
 
@@ -19,7 +20,10 @@ if (!gotTheLock) {
     }
   });
 
-  app.whenReady().then(createWindow);
+  app.whenReady().then(async () => {
+    await initSession();
+    createWindow();
+  });
 }
 
 function createWindow() {

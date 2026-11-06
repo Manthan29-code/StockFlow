@@ -14,7 +14,7 @@ function registerAuthIpc() {
     });
 
     if (res && res.token && res.user) {
-      setSession(res.token, res.user, rememberMe);
+      await setSession(res.token, res.user, rememberMe);
       wsClient.connect();
       if (res.user.role === ROLES.ADMIN) {
         backupScheduler.start();

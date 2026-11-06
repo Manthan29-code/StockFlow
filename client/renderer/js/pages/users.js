@@ -61,14 +61,17 @@ const UsersPage = {
                   </span>
                 </td>
                 <td>${Format.dateTime(u.createdAt)}</td>
-                <td style="text-align: right;">
-                  <button class="btn btn-secondary btn-sm toggle-role-btn" data-id="${u.id}" data-role="${u.role}">
-                    Make ${u.role === 'admin' ? 'Staff' : 'Admin'}
-                  </button>
-                  <button class="btn btn-secondary btn-sm toggle-active-btn" data-id="${u.id}" data-active="${u.isActive}">
-                    ${u.isActive ? 'Disable' : 'Enable'}
-                  </button>
-                  <button class="btn btn-secondary btn-sm reset-pwd-btn" data-id="${u.id}">Reset Password</button>
+                <td style="text-align: right; white-space: nowrap;">
+                  <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn btn-secondary btn-sm toggle-role-btn" data-id="${u.id}" data-role="${u.role}">
+                      Make ${u.role === 'admin' ? 'Staff' : 'Admin'}
+                    </button>
+                    <button class="btn btn-secondary btn-sm toggle-active-btn" data-id="${u.id}" data-active="${u.isActive}">
+                      ${u.isActive ? 'Disable' : 'Enable'}
+                    </button>
+                    <button class="btn btn-secondary btn-sm reset-pwd-btn" data-id="${u.id}">Reset Password</button>
+                    <button class="btn btn-secondary btn-sm delete-user-btn" style="color: var(--error);" data-id="${u.id}" data-username="${u.username}">Delete</button>
+                  </div>
                 </td>
               </tr>
             `).join('')}
@@ -86,6 +89,10 @@ const UsersPage = {
 
       container.querySelectorAll('.reset-pwd-btn').forEach((btn) => {
         btn.onclick = () => this.openResetPasswordModal(btn.getAttribute('data-id'));
+      });
+
+      container.querySelectorAll('.delete-user-btn').forEach((btn) => {
+        btn.onclick = () => this.confirmDeleteUser(btn.getAttribute('data-id'), btn.getAttribute('data-username'));
       });
     } catch (err) {
       container.innerHTML = `<div style="color: var(--error); padding: 20px;">${err.message}</div>`;
@@ -184,6 +191,31 @@ const UsersPage = {
         });
         Toast.show(`Password reset for ${user.username}`, 'success');
         return true;
+      },
+    });
+  },
+
+  confirmDeleteUser(userId, username) {
+    Modal.confirm({
+      title: 'Delete User Account',
+      messageHtml: `
+        <p>Are you sure you want to permanently delete user <strong>${username}</strong>?</p>
+        <p style="font-size: 12px; color: var(--neutral); margin-top: 8px;">
+          Note: Users who have created inventory records cannot be deleted and should be disabled instead.
+        </p>
+      `,
+      confirmText: 'Delete User',
+      danger: true,
+      onConfirm: async () => {
+        try {
+          await Api.delete(`/api/users/${userId}`);
+          Toast.show(`User '${username}' deleted successfully`, 'success');
+          await this.loadUsers();
+          return true;
+        } catch (err) {
+          Toast.show(err.message || 'Failed to delete user', 'error');
+          return true;
+        }
       },
     });
   },

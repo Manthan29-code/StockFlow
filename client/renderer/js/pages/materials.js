@@ -84,11 +84,13 @@ const MaterialsPage = {
                 <td class="num-cell" style="font-weight: 700; font-family: var(--font-mono);">
                   ${Format.number(m.stock || 0)} ${m.unit ? m.unit.code : ''}
                 </td>
-                <td style="text-align: right;">
-                  <button class="btn btn-secondary btn-sm edit-mat-btn" data-id="${m.id}">Edit</button>
-                  <button class="btn btn-secondary btn-sm toggle-mat-btn" data-id="${m.id}" data-active="${m.isActive}">
-                    ${m.isActive ? 'Archive' : 'Activate'}
-                  </button>
+                <td style="text-align: right; white-space: nowrap;">
+                  <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn btn-secondary btn-sm edit-mat-btn" data-id="${m.id}">Edit</button>
+                    <button class="btn btn-secondary btn-sm toggle-mat-btn" data-id="${m.id}" data-active="${m.isActive}">
+                      ${m.isActive ? 'Archive' : 'Activate'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             `).join('')}
