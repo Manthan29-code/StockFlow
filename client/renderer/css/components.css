@@ -323,3 +323,13 @@
   100% { background-color: transparent; }
 }
 
+/* Invisible Scrollbar Utility */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+

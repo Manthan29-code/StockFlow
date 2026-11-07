@@ -4,6 +4,7 @@ const fs = require('fs');
 const { request } = require('../httpClient');
 const { buildAllWorkbooks } = require('../excel/workbookBuilder');
 const { createMaterialWorkbook } = require('../excel/materialSheet');
+const { createBomWorkbook } = require('../excel/bomSheet');
 const { getMaterialFileName } = require('../excel/fileNames');
 const { parseMaterialWorkbook } = require('../excel/importParser');
 const { parseBomWorkbook } = require('../excel/bomImportParser');
@@ -55,6 +56,58 @@ function registerExcelIpc() {
     savedFiles.push(bomWorkbook.fileName);
 
     return { canceled: false, targetDir, savedFiles };
+  });
+
+  // Export BOM for a specific party or all parties
+  ipcMain.handle('excel:exportPartyBom', async (event, { partyId } = {}) => {
+    const dataset = await request({ method: 'GET', path: '/api/dataset' });
+    const data = dataset.data || dataset;
+    const parties = (data.parties || []).filter((p) => !partyId || p.id === partyId);
+    const selectedParty = (data.parties || []).find((p) => p.id === partyId);
+    const products = (data.products || []).filter((p) => !partyId || p.partyId === partyId);
+    const materials = data.materials || [];
+    const bomLines = data.bom_lines || [];
+    const units = data.units || [];
+
+    const unitsMap = new Map(units.map((u) => [u.id, u]));
+    const materialsMap = new Map(
+      materials.map((m) => [
+        m.id,
+        {
+          ...m,
+          unit: m.unit || unitsMap.get(m.unitId) || null,
+        },
+      ])
+    );
+
+    const linesByProductId = new Map();
+    for (const line of bomLines) {
+      const pId = line.productId || line.product_id;
+      if (!linesByProductId.has(pId)) {
+        linesByProductId.set(pId, []);
+      }
+      linesByProductId.get(pId).push(line);
+    }
+
+    const enrichedProducts = products.map((prod) => ({
+      ...prod,
+      bomLines: linesByProductId.get(prod.id) || prod.bomLines || [],
+    }));
+
+    const workbook = createBomWorkbook(parties, enrichedProducts, materialsMap);
+    const safePartyName = selectedParty ? selectedParty.name.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() : 'All';
+    const defaultName = `${safePartyName}_BOM.xlsx`;
+
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: selectedParty ? `Export BOM for ${selectedParty.name}` : 'Export BOM',
+      defaultPath: defaultName,
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+    });
+
+    if (canceled || !filePath) return { canceled: true };
+
+    await workbook.xlsx.writeFile(filePath);
+    return { canceled: false, filePath };
   });
 
   // Export all from backup JSON file (works even if server is down)

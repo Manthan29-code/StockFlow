@@ -53,7 +53,13 @@ const LoginPage = {
         State.setUser(user);
         Router.navigate('dashboard');
       } catch (err) {
-        errorDiv.textContent = err.message || 'Invalid username or password';
+        let msg = (err && err.message) ? String(err.message) : 'Invalid username or password';
+        // Clean any Electron IPC prefix wrapper e.g. "Error invoking remote method 'auth:login': Error: ..."
+        msg = msg.replace(/^Error invoking remote method '[^']+':\s*(Error:\s*)?/, '').trim();
+        if (!msg || msg === '[object Object]' || msg.includes('INTERNAL_ERROR') || msg.includes('INVALID_CREDENTIALS')) {
+          msg = 'Invalid username or password';
+        }
+        errorDiv.textContent = msg;
         errorDiv.style.display = 'block';
       } finally {
         submitBtn.disabled = false;

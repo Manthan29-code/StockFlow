@@ -156,5 +156,39 @@ router.post('/products/:id/bom-lines', auth, requireAdmin, validate(createBomLin
   }
 });
 
+// DELETE /products/:id (A)
+router.delete('/products/:id', auth, requireAdmin, async (req, res, next) => {
+  try {
+    const existing = await productsRepo.findById(req.params.id, true);
+    if (!existing) {
+      throw NotFoundError('Product not found');
+    }
+
+    const { revision } = await withTransaction(async (tx) => {
+      await productsRepo.deleteProduct(req.params.id, tx);
+      const rev = await metaRepo.bumpRevision(tx);
+      await auditRepo.createAuditEntry({
+        userId: req.user.id,
+        action: 'DELETE',
+        entity: 'products',
+        entityId: req.params.id,
+        before: mapProduct(existing),
+      }, tx);
+      return { revision: rev };
+    });
+
+    broadcast({
+      type: 'changed',
+      revision,
+      entity: 'products',
+      by: req.user.id,
+    });
+
+    res.json({ success: true, message: 'Product deleted' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
 

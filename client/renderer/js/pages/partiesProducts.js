@@ -5,35 +5,41 @@ const PartiesProductsPage = {
 
   async render(container) {
     container.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
         <div>
           <h1 style="font-size: 22px;">Parties & Products</h1>
           <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Manage customer parties and finished manufactured products</p>
         </div>
         <div style="display: flex; gap: 10px;">
+          <button class="btn btn-secondary btn-sm" id="export-bom-btn">Export BOM (Excel)</button>
           <button class="btn btn-secondary btn-sm" id="add-party-btn">+ Add Party</button>
           <button class="btn btn-primary btn-sm" id="add-product-btn">+ Add Product</button>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 280px 1fr; gap: 24px;">
+      <div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: calc(100vh - 175px); min-height: 480px;">
         <!-- Parties List Panel -->
-        <div class="card" style="padding: 0; overflow: hidden; height: fit-content;">
-          <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface);">
+        <div class="card" style="padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
+          <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;">
             <h3 class="card-title" style="font-size: 14px;">Parties / Customers</h3>
           </div>
-          <div id="parties-list" style="max-height: 600px; overflow-y: auto;">
+          <div id="parties-list" class="no-scrollbar" style="flex: 1; overflow-y: auto;">
             <div style="padding: 20px; text-align: center; color: var(--neutral);">Loading...</div>
           </div>
         </div>
 
         <!-- Products for selected party -->
-        <div class="card" style="padding: 0; overflow: hidden;">
-          <div style="padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-            <h3 class="card-title" id="products-header-title">Products</h3>
-            <span id="product-count-badge" class="chip chip-neutral">0 Products</span>
+        <div class="card" style="padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
+          <div style="padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <h3 class="card-title" id="products-header-title">Products</h3>
+              <span id="product-count-badge" class="chip chip-neutral">0 Products</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="panel-export-bom-btn" style="padding: 3px 10px; font-size: 12px;">
+              Export BOM (.xlsx)
+            </button>
           </div>
-          <div id="products-table-container">
+          <div id="products-table-container" class="no-scrollbar" style="flex: 1; overflow-y: auto;">
             <div style="padding: 30px; text-align: center; color: var(--neutral);">Select a party to view products</div>
           </div>
         </div>
@@ -42,8 +48,22 @@ const PartiesProductsPage = {
 
     document.getElementById('add-party-btn').onclick = () => this.openAddPartyModal();
     document.getElementById('add-product-btn').onclick = () => this.openAddProductModal();
+    document.getElementById('export-bom-btn').onclick = () => this.exportCurrentBom();
+    const panelExport = document.getElementById('panel-export-bom-btn');
+    if (panelExport) panelExport.onclick = () => this.exportCurrentBom();
 
     await this.loadData();
+  },
+
+  async exportCurrentBom() {
+    try {
+      const res = await window.api.exportPartyBom(this.selectedPartyId);
+      if (res && !res.canceled) {
+        Toast.show(`BOM exported successfully to Excel`, 'success');
+      }
+    } catch (err) {
+      Toast.show(`Export failed: ${err.message}`, 'error');
+    }
   },
 
   async loadData() {
@@ -139,8 +159,8 @@ const PartiesProductsPage = {
     }
 
     container.innerHTML = `
-      <table class="data-table">
-        <thead>
+      <table class="data-table" style="width: 100%;">
+        <thead style="position: sticky; top: 0; background: var(--surface); z-index: 2;">
           <tr>
             <th>Product Name / Specification</th>
             <th>BOM Lines</th>
@@ -158,9 +178,14 @@ const PartiesProductsPage = {
                   ${prod.isActive ? 'Active' : 'Archived'}
                 </span>
               </td>
-              <td style="text-align: right;">
-                <a href="#bom-editor?productId=${prod.id}" class="btn btn-secondary btn-sm">Edit BOM &rarr;</a>
-                <button class="btn btn-secondary btn-sm edit-prod-btn" data-id="${prod.id}">Edit</button>
+              <td style="text-align: right; white-space: nowrap;">
+                <div style="display: inline-flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                  <a href="#bom-editor?productId=${prod.id}" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11.5px;">Edit BOM &rarr;</a>
+                  <button class="btn btn-secondary btn-sm edit-prod-btn" data-id="${prod.id}" style="padding: 3px 8px; font-size: 11.5px;">Edit</button>
+                  ${State.isAdmin() ? `
+                    <button class="btn btn-secondary btn-sm delete-prod-btn" data-id="${prod.id}" style="padding: 3px 8px; font-size: 11.5px; color: var(--error);">Delete</button>
+                  ` : ''}
+                </div>
               </td>
             </tr>
           `).join('')}
@@ -170,6 +195,26 @@ const PartiesProductsPage = {
 
     container.querySelectorAll('.edit-prod-btn').forEach((btn) => {
       btn.onclick = () => this.openEditProductModal(btn.getAttribute('data-id'));
+    });
+
+    container.querySelectorAll('.delete-prod-btn').forEach((btn) => {
+      btn.onclick = () => this.confirmDeleteProduct(btn.getAttribute('data-id'));
+    });
+  },
+
+  confirmDeleteProduct(productId) {
+    const prod = this.products.find((p) => p.id === productId);
+    if (!prod) return;
+
+    Modal.confirm({
+      title: 'Delete Product',
+      message: `Are you sure you want to delete "${prod.name}" and all its BOM recipe lines? This action cannot be undone.`,
+      confirmText: 'Delete Product',
+      onConfirm: async () => {
+        await Api.delete(`/api/products/${productId}`);
+        Toast.show('Product deleted successfully', 'success');
+        await this.loadData();
+      },
     });
   },
 

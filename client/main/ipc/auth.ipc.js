@@ -7,20 +7,25 @@ const { ROLES } = require('@stockflow/shared');
 
 function registerAuthIpc() {
   ipcMain.handle('auth:login', async (event, { username, password, rememberMe }) => {
-    const res = await request({
-      method: 'POST',
-      path: '/api/auth/login',
-      body: { username, password },
-    });
+    try {
+      const res = await request({
+        method: 'POST',
+        path: '/api/auth/login',
+        body: { username, password },
+      });
 
-    if (res && res.token && res.user) {
-      await setSession(res.token, res.user, rememberMe);
-      wsClient.connect();
-      if (res.user.role === ROLES.ADMIN) {
-        backupScheduler.start();
+      if (res && res.token && res.user) {
+        await setSession(res.token, res.user, rememberMe);
+        wsClient.connect();
+        if (res.user.role === ROLES.ADMIN) {
+          backupScheduler.start();
+        }
       }
+      return res.user;
+    } catch (err) {
+      const msg = err && err.message ? err.message : 'Invalid username or password';
+      throw new Error(msg);
     }
-    return res.user;
   });
 
   ipcMain.handle('auth:logout', async () => {

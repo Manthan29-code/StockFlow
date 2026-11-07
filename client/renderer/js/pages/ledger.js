@@ -9,9 +9,14 @@ const LedgerPage = {
     container.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
         <div style="display: flex; align-items: center; gap: 16px;">
-          <div>
-            <label class="form-label" style="margin-bottom: 4px;">Selected Material</label>
-            <select id="ledger-material-select" class="form-control" style="width: 280px; font-weight: 600;"></select>
+          <div style="position: relative;">
+            <label class="form-label" style="margin-bottom: 4px;">Search Material</label>
+            <div style="position: relative; width: 320px;">
+              <input type="text" id="ledger-material-search" class="form-control" placeholder="Search material by name..." autocomplete="off" style="width: 100%; font-weight: 600; padding-right: 30px;">
+              <span id="ledger-material-clear" title="Clear / View All" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 16px; font-weight: bold; line-height: 1; user-select: none;">&times;</span>
+            </div>
+            <!-- Live Search Dropdown Filter -->
+            <div id="ledger-material-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 350px; max-height: 280px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
           </div>
           <div id="material-stock-banner" style="background: #FFFFFF; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 16px; margin-top: 18px;">
             <span style="font-size: 11px; text-transform: uppercase; color: var(--neutral); font-weight: 600;">Total Stock Balance</span>
@@ -60,34 +65,109 @@ const LedgerPage = {
   },
 
   async initMaterialSelect() {
-    const select = document.getElementById('ledger-material-select');
-    if (!select) return;
+    const searchInput = document.getElementById('ledger-material-search');
+    const dropdown = document.getElementById('ledger-material-dropdown');
+    const clearBtn = document.getElementById('ledger-material-clear');
+    if (!searchInput || !dropdown) return;
 
     try {
       const materials = await Api.get('/api/materials');
       State.materialsCache = materials;
 
       if (materials.length === 0) {
-        select.innerHTML = '<option value="">No materials available</option>';
+        searchInput.value = '';
+        searchInput.placeholder = 'No materials available';
         document.getElementById('ledger-entries-container').innerHTML = `
           <div style="text-align: center; padding: 40px; color: var(--neutral);">No materials exist. Please add a material first.</div>
         `;
         return;
       }
 
-      select.innerHTML = materials.map((m) => `<option value="${m.id}">${m.name}</option>`).join('');
-
       if (this.currentMaterialId && materials.some((m) => m.id === this.currentMaterialId)) {
-        select.value = this.currentMaterialId;
+        const found = materials.find((m) => m.id === this.currentMaterialId);
+        searchInput.value = found ? found.name : '';
       } else {
         this.currentMaterialId = materials[0].id;
-        select.value = this.currentMaterialId;
+        searchInput.value = materials[0].name;
       }
 
-      select.onchange = () => {
-        this.currentMaterialId = select.value;
-        this.loadLedger();
+      const renderDropdownItems = (filterText = '') => {
+        const query = filterText.toLowerCase().trim();
+        const matches = materials.filter((m) => m.name.toLowerCase().includes(query));
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = '<div style="padding: 12px 16px; color: var(--neutral); font-size: 13px; text-align: center;">No matching materials</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        dropdown.innerHTML = matches.map((m) => {
+          const isSelected = m.id === this.currentMaterialId;
+          const unitCode = m.unit ? m.unit.code : '';
+          const modeLabel = m.deductBy === 'qty_x_piece_weight' ? 'Weight' : 'Direct';
+          return `
+            <div class="material-search-item" data-id="${m.id}" style="padding: 9px 14px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: ${isSelected ? '#F0F4FF' : '#FFFFFF'}; transition: background 0.15s;">
+              <div>
+                <div style="font-weight: ${isSelected ? '600' : '500'}; font-size: 13px; color: var(--secondary);">${m.name}</div>
+                <div style="font-size: 11px; color: var(--neutral); margin-top: 1px;">Unit: ${unitCode} &bull; ${modeLabel}</div>
+              </div>
+              ${isSelected ? '<span class="chip chip-success" style="font-size: 10px; padding: 2px 6px;">Selected</span>' : ''}
+            </div>
+          `;
+        }).join('');
+
+        dropdown.querySelectorAll('.material-search-item').forEach((item) => {
+          item.onmouseenter = () => {
+            if (item.getAttribute('data-id') !== this.currentMaterialId) {
+              item.style.backgroundColor = '#F8FAFC';
+            }
+          };
+          item.onmouseleave = () => {
+            if (item.getAttribute('data-id') !== this.currentMaterialId) {
+              item.style.backgroundColor = '#FFFFFF';
+            }
+          };
+          item.onclick = (e) => {
+            e.stopPropagation();
+            const id = item.getAttribute('data-id');
+            const chosen = materials.find((m) => m.id === id);
+            this.currentMaterialId = id;
+            searchInput.value = chosen ? chosen.name : '';
+            dropdown.style.display = 'none';
+            this.loadLedger();
+          };
+        });
+
+        dropdown.style.display = 'block';
       };
+
+      searchInput.onfocus = () => {
+        renderDropdownItems(searchInput.value);
+        searchInput.select();
+      };
+
+      searchInput.oninput = () => {
+        renderDropdownItems(searchInput.value);
+      };
+
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          searchInput.value = '';
+          searchInput.focus();
+          renderDropdownItems('');
+        };
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && (!clearBtn || !clearBtn.contains(e.target))) {
+          dropdown.style.display = 'none';
+          const activeMat = materials.find((m) => m.id === this.currentMaterialId);
+          if (activeMat && (!searchInput.value || !materials.some((m) => m.name.toLowerCase() === searchInput.value.toLowerCase().trim()))) {
+            searchInput.value = activeMat.name;
+          }
+        }
+      });
 
       await this.loadLedger();
     } catch (err) {
@@ -243,10 +323,6 @@ const LedgerPage = {
               <button class="btn btn-primary btn-sm add-out-btn" data-entry-id="${entry.id}" data-entry-balance="${entry.balance}">
                 + Issue Material (OUT)
               </button>
-              ${State.isAdmin() ? `
-                <button class="btn btn-secondary btn-sm edit-in-btn" data-entry-id="${entry.id}">Edit</button>
-                <button class="btn btn-secondary btn-sm delete-in-btn" data-entry-id="${entry.id}" style="color: var(--error);">Delete</button>
-              ` : ''}
             </div>
           </div>
 

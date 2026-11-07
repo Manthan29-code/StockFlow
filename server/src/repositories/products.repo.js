@@ -88,11 +88,21 @@ async function updateProduct(id, data, client = prisma) {
   });
 }
 
+async function deleteProduct(id, client = prisma) {
+  await client.bomLine.deleteMany({
+    where: { productId: id },
+  });
+  return await client.product.delete({
+    where: { id },
+  });
+}
+
 module.exports = {
   listProducts,
   findById,
   findByPartyAndName,
   createProduct,
   updateProduct,
+  deleteProduct,
 };
 
