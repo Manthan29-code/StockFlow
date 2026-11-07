@@ -46,8 +46,12 @@ function normalizeText(cellValue) {
 
 function normalizeNumber(cellValue) {
   if (cellValue === null || cellValue === undefined || cellValue === '') return null;
-  if (typeof cellValue === 'object' && cellValue.result !== undefined) {
-    cellValue = cellValue.result;
+  if (typeof cellValue === 'object') {
+    if (cellValue.result !== undefined && cellValue.result !== null) {
+      cellValue = cellValue.result;
+    } else if (cellValue.formula) {
+      return null;
+    }
   }
   const clean = String(cellValue).replace(/,/g, '').trim();
   const num = Number(clean);
@@ -224,17 +228,12 @@ async function parseMaterialWorkbook(source, material, customColumnMap = null) {
     entry.recalculatedBalance = ledger.finalBalance;
     entry.status = ledger.status;
 
-    // Check sheet balance mismatch against the final row's sheet balance
-    let finalSheetBalance = null;
-    for (let i = entry.outgoingRows.length - 1; i >= 0; i--) {
-      if (entry.outgoingRows[i].sheetBalance !== null && entry.outgoingRows[i].sheetBalance !== undefined) {
-        finalSheetBalance = entry.outgoingRows[i].sheetBalance;
-        break;
-      }
-    }
-    if (finalSheetBalance === null || finalSheetBalance === undefined) {
-      finalSheetBalance = entry.sheetBalance;
-    }
+    // Check sheet balance mismatch: only verify against the final transaction row's balance if present.
+    // Never fall back to intermediate rows (which haven't had subsequent deductions applied).
+    const finalRow = entry.outgoingRows.length > 0
+      ? entry.outgoingRows[entry.outgoingRows.length - 1]
+      : null;
+    const finalSheetBalance = finalRow ? finalRow.sheetBalance : entry.sheetBalance;
 
     if (finalSheetBalance !== null && finalSheetBalance !== undefined) {
       if (toDecimal(finalSheetBalance).minus(toDecimal(entry.recalculatedBalance)).abs().gt(0.01)) {
