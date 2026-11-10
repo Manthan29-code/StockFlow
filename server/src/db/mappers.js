@@ -101,11 +101,51 @@ function mapBomLine(line) {
   };
 }
 
-function mapAuditLog(log) {
+function mapAuditLog(log, context = null) {
   if (!log) return null;
+  const userMap = context ? context.userMap : null;
+  const materialMap = context ? context.materialMap : null;
+  const partyMap = context ? context.partyMap : null;
+  const productMap = context ? context.productMap : null;
+
+  const user = userMap && log.userId ? (userMap.get(log.userId) || null) : null;
+
+  let after = log.after ? { ...log.after } : null;
+  let before = log.before ? { ...log.before } : null;
+
+  if (materialMap) {
+    if (after && after.materialId && !after.materialName) {
+      after.materialName = materialMap.get(after.materialId)?.name;
+    }
+    if (before && before.materialId && !before.materialName) {
+      before.materialName = materialMap.get(before.materialId)?.name;
+    }
+  }
+
+  if (partyMap) {
+    if (after && after.partyId && !after.partyName) {
+      after.partyName = partyMap.get(after.partyId);
+    }
+    if (before && before.partyId && !before.partyName) {
+      before.partyName = partyMap.get(before.partyId);
+    }
+  }
+
+  if (productMap) {
+    if (after && after.productId && !after.productName) {
+      after.productName = productMap.get(after.productId);
+    }
+    if (before && before.productId && !before.productName) {
+      before.productName = productMap.get(before.productId);
+    }
+  }
+
   return {
     ...log,
     at: log.at ? log.at.toISOString() : null,
+    user,
+    before,
+    after,
   };
 }
 

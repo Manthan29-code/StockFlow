@@ -73,6 +73,7 @@ model IncomingEntry {
   material     Material              @relation(fields: [materialId], references: [id])
   outgoingRows OutgoingTransaction[]
 
+  @@index([materialId, inDate])
   @@map("incoming_entries")
 }
 
@@ -94,6 +95,7 @@ model OutgoingTransaction {
   version         Int           @default(1)
   incomingEntry   IncomingEntry @relation(fields: [incomingEntryId], references: [id], onDelete: Cascade)
 
+  @@index([incomingEntryId, rowNo])
   @@map("outgoing_transactions")
 }
 
@@ -143,6 +145,8 @@ model BomLine {
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   material    Material @relation(fields: [materialId], references: [id])
 
+  @@index([productId])
+  @@index([materialId])
   @@map("bom_lines")
 }
 
@@ -156,6 +160,8 @@ model AuditLog {
   after    Json?
   at       DateTime @default(now())
 
+  @@index([at(sort: Desc)])
+  @@index([entity, at(sort: Desc)])
   @@map("audit_log")
 }
 
