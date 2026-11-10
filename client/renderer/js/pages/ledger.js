@@ -47,7 +47,16 @@ const LedgerPage = {
       </div>
     `;
 
-    await this.initMaterialSelect();
+    // Bind action buttons immediately with null guards
+    const exportBtn = document.getElementById('ledger-export-btn');
+    if (exportBtn) {
+      exportBtn.onclick = () => this.exportCurrentMaterial();
+    }
+
+    const addIncomingBtn = document.getElementById('ledger-add-incoming-btn');
+    if (addIncomingBtn) {
+      addIncomingBtn.onclick = () => this.openAddIncomingModal();
+    }
 
     // Filter clicks
     container.querySelectorAll('[data-filter]').forEach((btn) => {
@@ -60,8 +69,7 @@ const LedgerPage = {
       };
     });
 
-    document.getElementById('ledger-export-btn').onclick = () => this.exportCurrentMaterial();
-    document.getElementById('ledger-add-incoming-btn').onclick = () => this.openAddIncomingModal();
+    await this.initMaterialSelect();
   },
 
   async initMaterialSelect() {
@@ -204,11 +212,22 @@ const LedgerPage = {
     const unitCode = material.unit ? material.unit.code : '';
 
     if (this.currentFilter === 'incoming_only') {
+      const totalInQty = entries.reduce((acc, e) => acc + (Number(e.quantity) || 0), 0);
+      const totalBalance = entries.reduce((acc, e) => acc + (Number(e.balance) || 0), 0);
+
       document.getElementById('ledger-entry-counts').textContent = `Showing ${entries.length} incoming challans`;
       container.innerHTML = `
         <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
-          <div style="padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13.5px; color: var(--secondary); display: flex; justify-content: space-between; align-items: center;">
-            <span>Incoming Challans Directory (${entries.length} total shipments)</span>
+          <div style="padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13.5px; color: var(--secondary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <span>Incoming Challans Directory (${entries.length} total shipments)</span>
+              <span class="chip chip-neutral" style="font-weight: 700; font-size: 13px; font-family: var(--font-mono); background: #FFFFFF; border: 1px solid var(--border); padding: 4px 10px;">
+                Total In: ${Format.number(totalInQty)} ${unitCode}
+              </span>
+              <span class="chip chip-neutral" style="font-weight: 600; font-size: 12.5px; font-family: var(--font-mono); background: #FFFFFF; border: 1px solid var(--border); padding: 4px 10px; color: var(--primary);">
+                Total Balance: ${Format.number(totalBalance)} ${unitCode}
+              </span>
+            </div>
             <span style="font-size: 12px; font-weight: 400; color: var(--neutral);">Click Edit or Delete on any shipment</span>
           </div>
           <div style="overflow-x: auto;">
@@ -255,6 +274,17 @@ const LedgerPage = {
                   `;
                 }).join('')}
               </tbody>
+              ${entries.length > 0 ? `
+                <tfoot style="background: #F8FAFC; border-top: 2px solid var(--border); font-weight: 700;">
+                  <tr>
+                    <td colspan="2" style="text-align: right; color: var(--secondary);">Total:</td>
+                    <td class="num-cell mono font-bold" style="color: var(--secondary); font-size: 13.5px;">${Format.number(totalInQty)}</td>
+                    <td></td>
+                    <td class="num-cell mono font-bold" style="color: var(--primary); font-size: 13.5px;">${Format.number(totalBalance)}</td>
+                    <td colspan="3"></td>
+                  </tr>
+                </tfoot>
+              ` : ''}
             </table>
           </div>
         </div>

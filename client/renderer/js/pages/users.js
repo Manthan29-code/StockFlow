@@ -3,12 +3,18 @@ const UsersPage = {
 
   async render(container) {
     container.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; gap: 16px; flex-wrap: wrap;">
         <div>
           <h1 style="font-size: 22px;">User Access & Security</h1>
           <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Manage operator accounts, administrator roles, and permissions</p>
         </div>
-        <button class="btn btn-primary btn-sm" id="create-user-btn">+ Create User</button>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div style="position: relative;">
+            <input type="text" id="user-search-input" class="form-control" placeholder="Search user..." autocomplete="off" style="width: 220px; height: 36px; font-size: 13px; padding-right: 26px;">
+            <span id="user-search-clear" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none; line-height: 1;">&times;</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="create-user-btn" style="height: 36px;">+ Create User</button>
+        </div>
       </div>
 
       <div class="card" style="padding: 0; overflow: hidden;">
@@ -19,84 +25,120 @@ const UsersPage = {
     `;
 
     document.getElementById('create-user-btn').onclick = () => this.openCreateUserModal();
+
+    const searchInput = document.getElementById('user-search-input');
+    const searchClear = document.getElementById('user-search-clear');
+    if (searchInput) {
+      searchInput.oninput = () => {
+        const val = searchInput.value;
+        if (searchClear) searchClear.style.display = val ? 'block' : 'none';
+        this.renderUserRows(val);
+      };
+    }
+    if (searchClear) {
+      searchClear.onclick = () => {
+        searchInput.value = '';
+        searchClear.style.display = 'none';
+        searchInput.focus();
+        this.renderUserRows('');
+      };
+    }
+
     await this.loadUsers();
   },
 
   async loadUsers() {
-    const container = document.getElementById('users-table-container');
-    if (!container) return;
-
     try {
       const users = await Api.get('/api/users');
       this.users = users;
-
-      container.innerHTML = `
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created At</th>
-              <th style="text-align: right;">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${users.map((u) => `
-              <tr>
-                <td>
-                  <div style="display: flex; align-items: center; gap: 10px;">
-                    ${Badge.render(u, u.createdAt)}
-                    <span style="font-weight: 600; color: var(--secondary);">${u.username}</span>
-                  </div>
-                </td>
-                <td>
-                  <span class="chip ${u.role === 'admin' ? 'chip-success' : 'chip-neutral'}">
-                    ${u.role.toUpperCase()}
-                  </span>
-                </td>
-                <td>
-                  <span class="chip ${u.isActive ? 'chip-success' : 'chip-error'}">
-                    ${u.isActive ? 'Active' : 'Disabled'}
-                  </span>
-                </td>
-                <td>${Format.dateTime(u.createdAt)}</td>
-                <td style="text-align: right; white-space: nowrap;">
-                  <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
-                    <button class="btn btn-secondary btn-sm toggle-role-btn" data-id="${u.id}" data-role="${u.role}">
-                      Make ${u.role === 'admin' ? 'Staff' : 'Admin'}
-                    </button>
-                    <button class="btn btn-secondary btn-sm toggle-active-btn" data-id="${u.id}" data-active="${u.isActive}">
-                      ${u.isActive ? 'Disable' : 'Enable'}
-                    </button>
-                    <button class="btn btn-secondary btn-sm reset-pwd-btn" data-id="${u.id}">Reset Password</button>
-                    <button class="btn btn-secondary btn-sm delete-user-btn" style="color: var(--error);" data-id="${u.id}" data-username="${u.username}">Delete</button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      `;
-
-      container.querySelectorAll('.toggle-role-btn').forEach((btn) => {
-        btn.onclick = () => this.toggleUserRole(btn.getAttribute('data-id'), btn.getAttribute('data-role'));
-      });
-
-      container.querySelectorAll('.toggle-active-btn').forEach((btn) => {
-        btn.onclick = () => this.toggleUserActive(btn.getAttribute('data-id'), btn.getAttribute('data-active') === 'true');
-      });
-
-      container.querySelectorAll('.reset-pwd-btn').forEach((btn) => {
-        btn.onclick = () => this.openResetPasswordModal(btn.getAttribute('data-id'));
-      });
-
-      container.querySelectorAll('.delete-user-btn').forEach((btn) => {
-        btn.onclick = () => this.confirmDeleteUser(btn.getAttribute('data-id'), btn.getAttribute('data-username'));
-      });
+      const searchInput = document.getElementById('user-search-input');
+      this.renderUserRows(searchInput ? searchInput.value : '');
     } catch (err) {
-      container.innerHTML = `<div style="color: var(--error); padding: 20px;">${err.message}</div>`;
+      const container = document.getElementById('users-table-container');
+      if (container) {
+        container.innerHTML = `<div style="color: var(--error); padding: 20px;">${err.message}</div>`;
+      }
     }
+  },
+
+  renderUserRows(query = '') {
+    const container = document.getElementById('users-table-container');
+    if (!container) return;
+
+    const q = (query || '').trim().toLowerCase();
+    const filteredUsers = q
+      ? this.users.filter((u) => u.username.toLowerCase().includes(q) || u.role.toLowerCase().includes(q))
+      : this.users;
+
+    if (filteredUsers.length === 0) {
+      container.innerHTML = `<div style="text-align: center; padding: 30px; color: var(--neutral); font-size: 13.5px;">No users found matching "${query}"</div>`;
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created At</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filteredUsers.map((u) => `
+            <tr>
+              <td>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  ${Badge.render(u, u.createdAt)}
+                  <span style="font-weight: 600; color: var(--secondary);">${u.username}</span>
+                </div>
+              </td>
+              <td>
+                <span class="chip ${u.role === 'admin' ? 'chip-success' : 'chip-neutral'}">
+                  ${u.role.toUpperCase()}
+                </span>
+              </td>
+              <td>
+                <span class="chip ${u.isActive ? 'chip-success' : 'chip-error'}">
+                  ${u.isActive ? 'Active' : 'Disabled'}
+                </span>
+              </td>
+              <td>${Format.dateTime(u.createdAt)}</td>
+              <td style="text-align: right; white-space: nowrap;">
+                <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                  <button class="btn btn-secondary btn-sm toggle-role-btn" data-id="${u.id}" data-role="${u.role}">
+                    Make ${u.role === 'admin' ? 'Staff' : 'Admin'}
+                  </button>
+                  <button class="btn btn-secondary btn-sm toggle-active-btn" data-id="${u.id}" data-active="${u.isActive}">
+                    ${u.isActive ? 'Disable' : 'Enable'}
+                  </button>
+                  <button class="btn btn-secondary btn-sm reset-pwd-btn" data-id="${u.id}">Reset Password</button>
+                  <button class="btn btn-secondary btn-sm delete-user-btn" style="color: var(--error);" data-id="${u.id}" data-username="${u.username}">Delete</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    container.querySelectorAll('.toggle-role-btn').forEach((btn) => {
+      btn.onclick = () => this.toggleUserRole(btn.getAttribute('data-id'), btn.getAttribute('data-role'));
+    });
+
+    container.querySelectorAll('.toggle-active-btn').forEach((btn) => {
+      btn.onclick = () => this.toggleUserActive(btn.getAttribute('data-id'), btn.getAttribute('data-active') === 'true');
+    });
+
+    container.querySelectorAll('.reset-pwd-btn').forEach((btn) => {
+      btn.onclick = () => this.openResetPasswordModal(btn.getAttribute('data-id'));
+    });
+
+    container.querySelectorAll('.delete-user-btn').forEach((btn) => {
+      btn.onclick = () => this.confirmDeleteUser(btn.getAttribute('data-id'), btn.getAttribute('data-username'));
+    });
   },
 
   openCreateUserModal() {

@@ -28,12 +28,15 @@ const CalculatorPage = {
       <div id="calc-results-container"></div>
     `;
 
-    await this.initProducts();
+    const form = document.getElementById('calc-form');
+    if (form) {
+      form.onsubmit = (e) => {
+        e.preventDefault();
+        this.calculate();
+      };
+    }
 
-    document.getElementById('calc-form').onsubmit = (e) => {
-      e.preventDefault();
-      this.calculate();
-    };
+    await this.initProducts();
   },
 
   async initProducts() {
@@ -54,8 +57,10 @@ const CalculatorPage = {
         return `<option value="${p.id}">${partyName} — ${p.name}</option>`;
       }).join('');
 
-      // Auto-run first calculation
-      this.calculate();
+      // Auto-run first calculation only if form container is still attached
+      if (document.getElementById('calc-results-container')) {
+        this.calculate();
+      }
     } catch (err) {
       Toast.show(err.message, 'error');
     }

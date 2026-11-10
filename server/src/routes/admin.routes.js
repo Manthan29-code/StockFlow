@@ -32,7 +32,12 @@ router.post('/admin/restore', auth, requireAdmin, validate(restoreSchema), async
 // 39. GET /admin/audit (A)
 router.get('/admin/audit', auth, requireAdmin, validate(auditQuerySchema, 'query'), async (req, res, next) => {
   try {
-    const { entity, userId, limit, offset } = req.query;
+    const q = req.validatedQuery || req.query || {};
+    const entity = q.entity || undefined;
+    const userId = q.userId || undefined;
+    const limit = Number(q.limit) || 50;
+    const offset = Number(q.offset) || 0;
+
     const [logs, total] = await Promise.all([
       auditRepo.listAuditLogs({ entity, userId, limit, offset }),
       auditRepo.countAuditLogs({ entity, userId }),

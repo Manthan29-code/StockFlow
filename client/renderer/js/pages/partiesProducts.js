@@ -17,11 +17,15 @@ const PartiesProductsPage = {
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: calc(100vh - 175px); min-height: 480px;">
+      <div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: 450px;">
         <!-- Parties List Panel -->
         <div class="card" style="padding: 0; overflow: hidden; height: 100%; display: flex; flex-direction: column;">
-          <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;">
-            <h3 class="card-title" style="font-size: 14px;">Parties / Customers</h3>
+          <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;">
+            <h3 class="card-title" style="font-size: 14px; margin-bottom: 8px;">Parties / Customers</h3>
+            <div style="position: relative;">
+              <input type="text" id="party-search-input" class="form-control" placeholder="Search parties..." autocomplete="off" style="height: 32px; font-size: 12.5px; padding-right: 26px;">
+              <span id="party-search-clear" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none; line-height: 1;">&times;</span>
+            </div>
           </div>
           <div id="parties-list" class="no-scrollbar" style="flex: 1; overflow-y: auto;">
             <div style="padding: 20px; text-align: center; color: var(--neutral);">Loading...</div>
@@ -52,6 +56,24 @@ const PartiesProductsPage = {
     const panelExport = document.getElementById('panel-export-bom-btn');
     if (panelExport) panelExport.onclick = () => this.exportCurrentBom();
 
+    const partySearch = document.getElementById('party-search-input');
+    const partyClear = document.getElementById('party-search-clear');
+    if (partySearch) {
+      partySearch.oninput = () => {
+        const val = partySearch.value;
+        if (partyClear) partyClear.style.display = val ? 'block' : 'none';
+        this.renderParties(val);
+      };
+    }
+    if (partyClear) {
+      partyClear.onclick = () => {
+        partySearch.value = '';
+        partyClear.style.display = 'none';
+        partySearch.focus();
+        this.renderParties('');
+      };
+    }
+
     await this.loadData();
   },
 
@@ -80,14 +102,15 @@ const PartiesProductsPage = {
         this.selectedPartyId = parties[0].id;
       }
 
-      this.renderParties();
+      const partySearch = document.getElementById('party-search-input');
+      this.renderParties(partySearch ? partySearch.value : '');
       this.renderProducts();
     } catch (err) {
       Toast.show(err.message, 'error');
     }
   },
 
-  renderParties() {
+  renderParties(filterQuery = '') {
     const list = document.getElementById('parties-list');
     if (!list) return;
 
@@ -96,7 +119,17 @@ const PartiesProductsPage = {
       return;
     }
 
-    list.innerHTML = this.parties.map((party) => {
+    const query = (filterQuery || '').trim().toLowerCase();
+    const filteredParties = query
+      ? this.parties.filter((p) => p.name.toLowerCase().includes(query))
+      : this.parties;
+
+    if (filteredParties.length === 0) {
+      list.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--neutral); font-size: 13px;">No parties matching "${filterQuery}"</div>`;
+      return;
+    }
+
+    list.innerHTML = filteredParties.map((party) => {
       const count = this.products.filter((p) => p.partyId === party.id).length;
       const isSelected = party.id === this.selectedPartyId;
 
@@ -117,7 +150,8 @@ const PartiesProductsPage = {
       item.onclick = (e) => {
         if (e.target.classList.contains('edit-party-btn')) return;
         this.selectedPartyId = item.getAttribute('data-id');
-        this.renderParties();
+        const searchInput = document.getElementById('party-search-input');
+        this.renderParties(searchInput ? searchInput.value : '');
         this.renderProducts();
       };
     });

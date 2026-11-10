@@ -1,5 +1,6 @@
 const ImportWizardPage = {
   materials: [],
+  selectedMaterialId: null,
   parsedData: null,
   importType: 'material', // 'material' | 'bom'
 
@@ -20,9 +21,13 @@ const ImportWizardPage = {
             </select>
           </div>
 
-          <div id="material-picker-group" style="flex: 1; min-width: 260px;">
-            <label class="form-label">Target Material</label>
-            <select id="import-material-select" class="form-control" style="font-weight: 600;"></select>
+          <div id="material-picker-group" style="flex: 1; min-width: 260px; position: relative;">
+            <label class="form-label">Search Target Material</label>
+            <div style="position: relative;">
+              <input type="text" id="import-material-search" class="form-control" placeholder="Search target material..." autocomplete="off" style="font-weight: 600; padding-right: 28px;">
+              <span id="import-material-clear" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none;">&times;</span>
+            </div>
+            <div id="import-material-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 240px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
           </div>
 
           <div>
@@ -36,28 +41,117 @@ const ImportWizardPage = {
       <div id="import-preview-container"></div>
     `;
 
-    await this.initData();
-
     const typeSelect = document.getElementById('import-type-select');
     const matGroup = document.getElementById('material-picker-group');
+    if (typeSelect) {
+      typeSelect.onchange = () => {
+        this.importType = typeSelect.value;
+        if (matGroup) {
+          matGroup.style.display = this.importType === 'material' ? 'block' : 'none';
+        }
+        const preview = document.getElementById('import-preview-container');
+        if (preview) preview.innerHTML = '';
+      };
+    }
 
-    typeSelect.onchange = () => {
-      this.importType = typeSelect.value;
-      matGroup.style.display = this.importType === 'material' ? 'block' : 'none';
-      document.getElementById('import-preview-container').innerHTML = '';
-    };
+    const startBtn = document.getElementById('start-import-btn');
+    if (startBtn) startBtn.onclick = () => this.selectAndPreview();
 
-    document.getElementById('start-import-btn').onclick = () => this.selectAndPreview();
+    await this.initData();
   },
 
   async initData() {
+    const searchInput = document.getElementById('import-material-search');
+    const dropdown = document.getElementById('import-material-dropdown');
+    const clearBtn = document.getElementById('import-material-clear');
+    if (!searchInput || !dropdown) return;
+
     try {
       const materials = await Api.get('/api/materials');
       this.materials = materials;
-      const select = document.getElementById('import-material-select');
-      if (select && materials.length > 0) {
-        select.innerHTML = materials.map((m) => `<option value="${m.id}">${m.name} (${m.deductBy === 'qty_x_piece_weight' ? 'Weight' : 'Direct'})</option>`).join('');
+
+      if (materials.length === 0) {
+        searchInput.value = '';
+        searchInput.placeholder = 'No materials available';
+        return;
       }
+
+      this.selectedMaterialId = materials[0].id;
+      const initialMode = materials[0].deductBy === 'qty_x_piece_weight' ? 'Weight' : 'Direct';
+      searchInput.value = `${materials[0].name} (${initialMode})`;
+
+      const renderItems = (filterText = '') => {
+        const query = filterText.toLowerCase().trim();
+        const matches = materials.filter((m) => m.name.toLowerCase().includes(query));
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = '<div style="padding: 10px 14px; color: var(--neutral); font-size: 12.5px; text-align: center;">No matching materials</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        dropdown.innerHTML = matches.map((m) => {
+          const isSelected = m.id === this.selectedMaterialId;
+          const unitCode = m.unit ? m.unit.code : '';
+          const mode = m.deductBy === 'qty_x_piece_weight' ? 'Weight-based' : 'Direct count';
+          return `
+            <div class="import-mat-item" data-id="${m.id}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: ${isSelected ? '#F0F4FF' : '#FFFFFF'};">
+              <div>
+                <div style="font-weight: ${isSelected ? '600' : '500'}; font-size: 13px; color: var(--secondary);">${m.name}</div>
+                <div style="font-size: 11px; color: var(--neutral);">${unitCode} &bull; ${mode}</div>
+              </div>
+              ${isSelected ? '<span class="chip chip-success" style="font-size: 10px;">Selected</span>' : ''}
+            </div>
+          `;
+        }).join('');
+
+        dropdown.querySelectorAll('.import-mat-item').forEach((item) => {
+          item.onclick = (e) => {
+            e.stopPropagation();
+            const id = item.getAttribute('data-id');
+            const chosen = materials.find((m) => m.id === id);
+            this.selectedMaterialId = id;
+            const modeLabel = chosen.deductBy === 'qty_x_piece_weight' ? 'Weight' : 'Direct';
+            searchInput.value = `${chosen.name} (${modeLabel})`;
+            dropdown.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'none';
+          };
+        });
+
+        dropdown.style.display = 'block';
+      };
+
+      searchInput.onfocus = () => {
+        renderItems(searchInput.value);
+        searchInput.select();
+      };
+
+      searchInput.oninput = () => {
+        const val = searchInput.value;
+        if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+        renderItems(val);
+      };
+
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          searchInput.value = '';
+          clearBtn.style.display = 'none';
+          searchInput.focus();
+          renderItems('');
+        };
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && (!clearBtn || !clearBtn.contains(e.target))) {
+          dropdown.style.display = 'none';
+          const activeMat = materials.find((m) => m.id === this.selectedMaterialId);
+          if (activeMat && (!searchInput.value || !materials.some((m) => searchInput.value.toLowerCase().includes(m.name.toLowerCase())))) {
+            const mode = activeMat.deductBy === 'qty_x_piece_weight' ? 'Weight' : 'Direct';
+            searchInput.value = `${activeMat.name} (${mode})`;
+          }
+        }
+      });
     } catch (err) {
       console.error(err);
     }
@@ -69,10 +163,10 @@ const ImportWizardPage = {
 
     try {
       if (this.importType === 'material') {
-        const matSelect = document.getElementById('import-material-select');
-        const material = this.materials.find((m) => m.id === matSelect.value);
+        const material = this.materials.find((m) => m.id === this.selectedMaterialId);
         if (!material) {
           Toast.show('Please select a material first', 'warning');
+          previewContainer.innerHTML = '';
           return;
         }
 

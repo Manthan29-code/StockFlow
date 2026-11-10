@@ -13,15 +13,21 @@ function validate(schema, source = 'body') {
       const firstErrorMessage = result.error.errors[0]?.message || 'Validation failed';
       return next(ValidationError(firstErrorMessage, details));
     }
-    try {
+    if (source === 'query') {
+      try {
+        req.query = result.data;
+      } catch {
+        // In Express 5, req.query is a getter. Safely mutate the object it returns.
+        if (req.query && typeof req.query === 'object') {
+          for (const key of Object.keys(req.query)) {
+            delete req.query[key];
+          }
+          Object.assign(req.query, result.data);
+        }
+      }
+      req.validatedQuery = result.data;
+    } else {
       req[source] = result.data;
-    } catch (err) {
-      Object.defineProperty(req, source, {
-        value: result.data,
-        writable: true,
-        configurable: true,
-        enumerable: true,
-      });
     }
     next();
   };

@@ -1,5 +1,6 @@
 const ExportPage = {
   materials: [],
+  selectedMaterialId: null,
 
   async render(container) {
     container.innerHTML = `
@@ -15,11 +16,15 @@ const ExportPage = {
           <p style="color: var(--neutral); font-size: 13px; margin-bottom: 20px;">
             Generates a dedicated workbook for one material with all incoming challans, outgoing dispatch rows, and running balances in the exact report format.
           </p>
-          <div class="form-group">
-            <label class="form-label">Select Material</label>
-            <select id="export-single-select" class="form-control" style="font-weight: 600;"></select>
+          <div class="form-group" style="position: relative;">
+            <label class="form-label">Search / Select Material</label>
+            <div style="position: relative;">
+              <input type="text" id="export-material-search" class="form-control" placeholder="Search material to export..." autocomplete="off" style="font-weight: 600; padding-right: 28px;">
+              <span id="export-material-clear" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none;">&times;</span>
+            </div>
+            <div id="export-material-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 240px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
           </div>
-          <button class="btn btn-primary" id="export-single-btn" style="width: 100%;">
+          <button class="btn btn-primary" id="export-single-btn" style="width: 100%; margin-top: 14px;">
             Export Selected Material (.xlsx)
           </button>
         </div>
@@ -61,29 +66,111 @@ const ExportPage = {
       </div>
     `;
 
-    await this.initMaterials();
+    const singleBtn = document.getElementById('export-single-btn');
+    if (singleBtn) singleBtn.onclick = () => this.exportSingle();
+    const allBtn = document.getElementById('export-all-btn');
+    if (allBtn) allBtn.onclick = () => this.exportAll();
+    const backupBtn = document.getElementById('export-from-backup-btn');
+    if (backupBtn) backupBtn.onclick = () => this.exportFromBackup();
 
-    document.getElementById('export-single-btn').onclick = () => this.exportSingle();
-    document.getElementById('export-all-btn').onclick = () => this.exportAll();
-    document.getElementById('export-from-backup-btn').onclick = () => this.exportFromBackup();
+    await this.initMaterials();
   },
 
   async initMaterials() {
+    const searchInput = document.getElementById('export-material-search');
+    const dropdown = document.getElementById('export-material-dropdown');
+    const clearBtn = document.getElementById('export-material-clear');
+    if (!searchInput || !dropdown) return;
+
     try {
       const materials = await Api.get('/api/materials');
       this.materials = materials;
-      const select = document.getElementById('export-single-select');
-      if (select && materials.length > 0) {
-        select.innerHTML = materials.map((m) => `<option value="${m.id}">${m.name}</option>`).join('');
+
+      if (materials.length === 0) {
+        searchInput.value = '';
+        searchInput.placeholder = 'No materials available';
+        return;
       }
+
+      this.selectedMaterialId = materials[0].id;
+      searchInput.value = materials[0].name;
+
+      const renderItems = (filterText = '') => {
+        const query = filterText.toLowerCase().trim();
+        const matches = materials.filter((m) => m.name.toLowerCase().includes(query));
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = '<div style="padding: 10px 14px; color: var(--neutral); font-size: 12.5px; text-align: center;">No matching materials</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        dropdown.innerHTML = matches.map((m) => {
+          const isSelected = m.id === this.selectedMaterialId;
+          const unitCode = m.unit ? m.unit.code : '';
+          return `
+            <div class="export-mat-item" data-id="${m.id}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: ${isSelected ? '#F0F4FF' : '#FFFFFF'};">
+              <div>
+                <div style="font-weight: ${isSelected ? '600' : '500'}; font-size: 13px; color: var(--secondary);">${m.name}</div>
+                <div style="font-size: 11px; color: var(--neutral);">${unitCode}</div>
+              </div>
+              ${isSelected ? '<span class="chip chip-success" style="font-size: 10px;">Selected</span>' : ''}
+            </div>
+          `;
+        }).join('');
+
+        dropdown.querySelectorAll('.export-mat-item').forEach((item) => {
+          item.onclick = (e) => {
+            e.stopPropagation();
+            const id = item.getAttribute('data-id');
+            const chosen = materials.find((m) => m.id === id);
+            this.selectedMaterialId = id;
+            searchInput.value = chosen ? chosen.name : '';
+            dropdown.style.display = 'none';
+            if (clearBtn) clearBtn.style.display = 'none';
+          };
+        });
+
+        dropdown.style.display = 'block';
+      };
+
+      searchInput.onfocus = () => {
+        renderItems(searchInput.value);
+        searchInput.select();
+      };
+
+      searchInput.oninput = () => {
+        const val = searchInput.value;
+        if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+        renderItems(val);
+      };
+
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          searchInput.value = '';
+          clearBtn.style.display = 'none';
+          searchInput.focus();
+          renderItems('');
+        };
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target) && (!clearBtn || !clearBtn.contains(e.target))) {
+          dropdown.style.display = 'none';
+          const activeMat = materials.find((m) => m.id === this.selectedMaterialId);
+          if (activeMat && (!searchInput.value || !materials.some((m) => m.name.toLowerCase() === searchInput.value.toLowerCase().trim()))) {
+            searchInput.value = activeMat.name;
+          }
+        }
+      });
     } catch (err) {
       console.error(err);
     }
   },
 
   async exportSingle() {
-    const select = document.getElementById('export-single-select');
-    const materialId = select.value;
+    const materialId = this.selectedMaterialId;
     if (!materialId) {
       Toast.show('Please select a material first', 'warning');
       return;

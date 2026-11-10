@@ -5,6 +5,8 @@ const {
   calculateEntryLedger,
   calculateMaterialStock,
   ENTRY_STATUS,
+  toDecimal,
+  Decimal,
 } = require('@stockflow/shared');
 const {
   mapMaterial,
@@ -91,8 +93,10 @@ async function getStockSummary() {
   const summaries = materials.map((material) => {
     const entries = entriesByMaterial.get(material.id) || [];
     let openEntriesCount = 0;
+    let totalInQty = new Decimal(0);
 
     const entriesWithLedger = entries.map((entry) => {
+      totalInQty = totalInQty.plus(toDecimal(entry.quantity));
       const rawRows = entry.outgoingRows || [];
       const ledger = calculateEntryLedger(
         { quantity: entry.quantity.toString() },
@@ -121,6 +125,7 @@ async function getStockSummary() {
     return {
       material: mapMaterial(material),
       totalStock,
+      totalInQuantity: totalInQty.toString(),
       openEntriesCount,
       totalEntriesCount: entries.length,
     };
