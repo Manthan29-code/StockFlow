@@ -1,5 +1,6 @@
 const CalculatorPage = {
   products: [],
+  selectedProductId: null,
 
   async render(container) {
     container.innerHTML = `
@@ -10,9 +11,15 @@ const CalculatorPage = {
 
       <div class="card" style="margin-bottom: 24px; padding: 24px;">
         <form id="calc-form" style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap;">
-          <div style="flex: 2; min-width: 300px;">
-            <label class="form-label">Finished Product</label>
-            <select id="calc-product-select" class="form-control" style="font-weight: 600;" required></select>
+          <div style="flex: 2; min-width: 320px; position: relative;">
+            <label class="form-label">Search Finished Product</label>
+            <div style="position: relative;">
+              <input type="text" id="calc-product-search" class="form-control" placeholder="Search product or customer party..." autocomplete="off" style="font-weight: 600; padding-right: 30px;" required>
+              <span id="calc-product-clear" title="Clear / View All" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 16px; font-weight: bold; line-height: 1; user-select: none;">&times;</span>
+            </div>
+            <input type="hidden" id="calc-product-id" required>
+            <!-- Autocomplete Dropdown List -->
+            <div id="calc-product-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 280px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
           </div>
           <div style="flex: 1; min-width: 160px;">
             <label class="form-label">Planned Production Quantity</label>
@@ -40,22 +47,105 @@ const CalculatorPage = {
   },
 
   async initProducts() {
+    const searchInput = document.getElementById('calc-product-search');
+    const hiddenId = document.getElementById('calc-product-id');
+    const dropdown = document.getElementById('calc-product-dropdown');
+    const clearBtn = document.getElementById('calc-product-clear');
+    if (!searchInput || !dropdown) return;
+
     try {
       const products = await Api.get('/api/products');
       this.products = products;
 
-      const select = document.getElementById('calc-product-select');
-      if (!select) return;
-
       if (products.length === 0) {
-        select.innerHTML = '<option value="">No products available</option>';
+        searchInput.value = '';
+        searchInput.placeholder = 'No products available';
+        if (hiddenId) hiddenId.value = '';
         return;
       }
 
-      select.innerHTML = products.map((p) => {
-        const partyName = p.party ? p.party.name : 'Unknown';
-        return `<option value="${p.id}">${partyName} — ${p.name}</option>`;
-      }).join('');
+      // Default select first product or previously selected product
+      let chosen = products.find((p) => p.id === this.selectedProductId) || products[0];
+      this.selectProduct(chosen);
+
+      // Render Dropdown List
+      const renderDropdown = (query = '') => {
+        const q = query.toLowerCase().trim();
+        const matches = products.filter((p) => {
+          if (!q) return true;
+          const pName = (p.name || '').toLowerCase();
+          const partyName = (p.party ? p.party.name : '').toLowerCase();
+          return pName.includes(q) || partyName.includes(q) || `${partyName} ${pName}`.includes(q);
+        });
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = '<div style="padding: 12px 16px; color: var(--neutral); font-size: 13px;">No matching products found</div>';
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        dropdown.innerHTML = matches.map((p) => {
+          const isSelected = p.id === this.selectedProductId;
+          const partyName = p.party ? p.party.name : 'Unknown';
+          const bomCount = (p.bomLines || []).length;
+          return `
+            <div class="product-search-item" data-id="${p.id}" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: ${isSelected ? '#F0F4FF' : '#FFFFFF'}; transition: background 0.15s;">
+              <div>
+                <div style="font-weight: ${isSelected ? '700' : '600'}; font-size: 13.5px; color: var(--secondary);">${p.name}</div>
+                <div style="font-size: 11.5px; color: var(--neutral); margin-top: 2px;">
+                  Customer: <strong>${partyName}</strong> &bull; ${bomCount} material${bomCount !== 1 ? 's' : ''}
+                </div>
+              </div>
+              ${isSelected ? '<span class="chip chip-success" style="font-size: 10.5px; padding: 2px 7px;">Selected</span>' : ''}
+            </div>
+          `;
+        }).join('');
+
+        dropdown.querySelectorAll('.product-search-item').forEach((item) => {
+          item.onmouseenter = () => {
+            if (item.getAttribute('data-id') !== this.selectedProductId) {
+              item.style.backgroundColor = '#F8FAFC';
+            }
+          };
+          item.onmouseleave = () => {
+            if (item.getAttribute('data-id') !== this.selectedProductId) {
+              item.style.backgroundColor = '#FFFFFF';
+            }
+          };
+          item.onclick = (e) => {
+            e.stopPropagation();
+            const id = item.getAttribute('data-id');
+            const found = products.find((p) => p.id === id);
+            if (found) {
+              this.selectProduct(found);
+              dropdown.style.display = 'none';
+              this.calculate();
+            }
+          };
+        });
+
+        dropdown.style.display = 'block';
+      };
+
+      // Search input events
+      searchInput.onfocus = () => renderDropdown(searchInput.value);
+      searchInput.oninput = () => renderDropdown(searchInput.value);
+
+      if (clearBtn) {
+        clearBtn.onclick = (e) => {
+          e.stopPropagation();
+          searchInput.value = '';
+          searchInput.focus();
+          renderDropdown('');
+        };
+      }
+
+      // Close dropdown on click outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#calc-product-search') && !e.target.closest('#calc-product-dropdown') && !e.target.closest('#calc-product-clear')) {
+          dropdown.style.display = 'none';
+        }
+      });
 
       // Auto-run first calculation only if form container is still attached
       if (document.getElementById('calc-results-container')) {
@@ -66,15 +156,42 @@ const CalculatorPage = {
     }
   },
 
+  selectProduct(p) {
+    if (!p) return;
+    this.selectedProductId = p.id;
+    const searchInput = document.getElementById('calc-product-search');
+    const hiddenId = document.getElementById('calc-product-id');
+    const partyName = p.party ? p.party.name : 'Unknown';
+    if (searchInput) {
+      searchInput.value = `${partyName} — ${p.name}`;
+    }
+    if (hiddenId) {
+      hiddenId.value = p.id;
+    }
+  },
+
   async calculate() {
-    const select = document.getElementById('calc-product-select');
+    const hiddenId = document.getElementById('calc-product-id');
+    const searchInput = document.getElementById('calc-product-search');
     const qtyInput = document.getElementById('calc-qty-input');
     const container = document.getElementById('calc-results-container');
-    if (!select || !qtyInput || !container) return;
+    if (!hiddenId || !qtyInput || !container) return;
 
-    const productId = select.value;
+    let productId = hiddenId.value;
+    if (!productId && searchInput && searchInput.value.trim()) {
+      const q = searchInput.value.trim().toLowerCase();
+      const match = this.products.find((p) => {
+        const partyName = (p.party ? p.party.name : '').toLowerCase();
+        const pName = (p.name || '').toLowerCase();
+        return `${partyName} — ${pName}`.toLowerCase() === q || pName === q;
+      });
+      if (match) {
+        this.selectProduct(match);
+        productId = match.id;
+      }
+    }
+
     const qty = qtyInput.value;
-
     if (!productId || !qty || Number(qty) <= 0) return;
 
     container.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--neutral);">Calculating...</div>';
