@@ -1,6 +1,7 @@
 const { withTransaction } = require('../db/tx');
 const metaRepo = require('../repositories/meta.repo');
 const auditRepo = require('../repositories/audit.repo');
+const { ensureDatabaseSchema } = require('./schema.service');
 const { broadcast } = require('../realtime/broadcaster');
 const { ValidationError } = require('../utils/errors');
 const { parseYYYYMMDDToDate } = require('../utils/dates');
@@ -9,6 +10,9 @@ async function restoreBackup(actorId, backupPayload) {
   if (!backupPayload || backupPayload.formatVersion !== 1 || !backupPayload.data) {
     throw ValidationError('Invalid backup payload. formatVersion 1 is required.');
   }
+
+  // Ensure tables and indexes exist on the database before restoring
+  await ensureDatabaseSchema();
 
   const {
     users = [],

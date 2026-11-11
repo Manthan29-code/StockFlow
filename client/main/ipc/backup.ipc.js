@@ -1,12 +1,19 @@
+const fs = require('fs');
 const { ipcMain, dialog } = require('electron');
-const { saveSettings } = require('../config');
+const { saveSettings, getConfig } = require('../config');
 const { backupScheduler } = require('../backup/backupScheduler');
 const { inspectBackupFile, restoreFromFile } = require('../backup/restoreService');
 
 function registerBackupIpc() {
   ipcMain.handle('backup:chooseFolder', async () => {
+    const config = getConfig();
+    const defaultPath = config.BACKUP_FOLDER && fs.existsSync(config.BACKUP_FOLDER)
+      ? config.BACKUP_FOLDER
+      : undefined;
+
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Select Backup Storage Directory',
+      defaultPath,
       properties: ['openDirectory', 'createDirectory'],
     });
 
@@ -33,8 +40,14 @@ function registerBackupIpc() {
   });
 
   ipcMain.handle('backup:inspectFile', async () => {
+    const config = getConfig();
+    const defaultPath = config.BACKUP_FOLDER && fs.existsSync(config.BACKUP_FOLDER)
+      ? config.BACKUP_FOLDER
+      : undefined;
+
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Select Backup File to Restore',
+      defaultPath,
       filters: [{ name: 'JSON Backup Files', extensions: ['json'] }],
       properties: ['openFile'],
     });

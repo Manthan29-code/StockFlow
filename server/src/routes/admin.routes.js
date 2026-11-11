@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const datasetService = require('../services/dataset.service');
 const restoreService = require('../services/restore.service');
+const { ensureDatabaseSchema } = require('../services/schema.service');
 const auditRepo = require('../repositories/audit.repo');
 const usersRepo = require('../repositories/users.repo');
 const materialsRepo = require('../repositories/materials.repo');
@@ -27,6 +28,16 @@ router.get('/admin/backup', auth, requireAdmin, async (req, res, next) => {
 router.post('/admin/restore', auth, requireAdmin, validate(restoreSchema), async (req, res, next) => {
   try {
     const result = await restoreService.restoreBackup(req.user.id, req.body);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /admin/schema/init (A) - Verify or auto-create tables for fresh databases
+router.post('/admin/schema/init', auth, requireAdmin, async (req, res, next) => {
+  try {
+    const result = await ensureDatabaseSchema();
     res.json(result);
   } catch (err) {
     next(err);

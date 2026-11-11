@@ -1,6 +1,7 @@
 const { ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { getConfig } = require('../config');
 const { request } = require('../httpClient');
 const { buildAllWorkbooks } = require('../excel/workbookBuilder');
 const { createMaterialWorkbook } = require('../excel/materialSheet');
@@ -112,8 +113,14 @@ function registerExcelIpc() {
 
   // Export all from backup JSON file (works even if server is down)
   ipcMain.handle('excel:exportFromBackup', async () => {
+    const config = getConfig();
+    const defaultBackupPath = config.BACKUP_FOLDER && fs.existsSync(config.BACKUP_FOLDER)
+      ? config.BACKUP_FOLDER
+      : undefined;
+
     const { canceled: openCanceled, filePaths } = await dialog.showOpenDialog({
       title: 'Select Backup JSON File',
+      defaultPath: defaultBackupPath,
       filters: [{ name: 'JSON Backup Files', extensions: ['json'] }],
       properties: ['openFile'],
     });

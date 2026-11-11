@@ -64,9 +64,14 @@ const SettingsPage = {
             &excl; <strong>Warning:</strong> Restoring will wipe existing database records and replace them with the backup's state. Typing <code>RESTORE</code> will be required to confirm.
           </div>
 
-          <button class="btn btn-danger" id="start-restore-btn">
-            Restore From Backup File 
-          </button>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-danger" id="start-restore-btn">
+              Restore From Backup File (.json)
+            </button>
+            <button class="btn btn-secondary" id="init-schema-btn" style="font-size: 13px;">
+              Verify / Initialize Database Tables
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -74,6 +79,7 @@ const SettingsPage = {
     document.getElementById('choose-backup-folder-btn').onclick = () => this.chooseBackupFolder();
     document.getElementById('run-backup-now-btn').onclick = () => this.runBackupNow();
     document.getElementById('start-restore-btn').onclick = () => this.startRestoreFlow();
+    document.getElementById('init-schema-btn').onclick = () => this.initializeSchema();
     document.getElementById('save-server-url-btn').onclick = () => this.saveServerUrl();
 
     await this.loadConfig();
@@ -210,6 +216,30 @@ const SettingsPage = {
         return false;
       },
     });
+  },
+
+  async initializeSchema() {
+    const btn = document.getElementById('init-schema-btn');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+    }
+
+    try {
+      const res = await Api.post('/api/admin/schema/init', {});
+      if (res.created) {
+        Toast.show('All database tables, foreign keys, and indexes created successfully!', 'success');
+      } else {
+        Toast.show('Database schema is verified and ready!', 'success');
+      }
+    } catch (err) {
+      Toast.show(err.message || 'Failed to verify schema', 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Verify / Initialize Database Tables';
+      }
+    }
   },
 };
 
