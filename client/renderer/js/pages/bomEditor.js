@@ -171,25 +171,32 @@ const BomEditorPage = {
   openAddBomLineModal() {
     if (!this.currentProductId) return;
 
+    let selectedMaterial = null;
+
     Modal.open({
       title: 'Add Material to BOM',
+      width: '540px',
       bodyHtml: `
         <form id="add-bom-line-form">
-          <div class="form-group">
+          <div class="form-group" style="position: relative;">
             <label class="form-label">Select Raw Material or Component</label>
-            <select name="materialId" id="bom-mat-picker" class="form-control" required>
-              ${this.materials.map((m) => `<option value="${m.id}">${m.name} (${m.unit ? m.unit.code : ''})</option>`).join('')}
-            </select>
+            <div style="position: relative;">
+              <input type="text" id="bom-mat-search" class="form-control" autocomplete="off" style="font-weight: 600; padding-right: 30px;" required>
+              <span id="bom-mat-clear" title="Clear / View All" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 16px; font-weight: bold; line-height: 1; user-select: none;">&times;</span>
+            </div>
+            <input type="hidden" name="materialId" id="bom-mat-hidden-id" required>
+            <!-- Autocomplete Dropdown List -->
+            <div id="bom-mat-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 220px; overflow-y: auto; z-index: 1100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Consumption per finished unit</label>
-              <input type="number" step="any" name="consumption" class="form-control" placeholder="e.g. 0.700 or 1" required>
+              <label class="form-label" id="bom-mat-consumption-label">Consumption per finished unit</label>
+              <input type="number" step="any" name="consumption" class="form-control" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Specification Value (Optional)</label>
-              <input type="text" name="specValue" class="form-control" placeholder="e.g. 271 or TL271">
+              <label class="form-label" id="bom-mat-spec-label">Specification Value (Optional)</label>
+              <input type="text" name="specValue" id="bom-mat-spec-input" class="form-control">
             </div>
           </div>
         </form>
@@ -197,8 +204,18 @@ const BomEditorPage = {
       confirmText: 'Add to BOM',
       onConfirm: async () => {
         const form = document.getElementById('add-bom-line-form');
+        const materialId = form.materialId.value;
+        if (!materialId) {
+          Toast.show('Please select a raw material from the list', 'error');
+          return false;
+        }
+        if (!form.consumption.value) {
+          Toast.show('Please enter consumption per unit', 'error');
+          return false;
+        }
+
         await Api.post(`/api/products/${this.currentProductId}/bom-lines`, {
-          materialId: form.materialId.value,
+          materialId,
           consumption: form.consumption.value,
           specValue: form.specValue.value.trim() || null,
         });
@@ -208,6 +225,115 @@ const BomEditorPage = {
         return true;
       },
     });
+
+    const searchInput = document.getElementById('bom-mat-search');
+    const hiddenId = document.getElementById('bom-mat-hidden-id');
+    const dropdown = document.getElementById('bom-mat-dropdown');
+    const clearBtn = document.getElementById('bom-mat-clear');
+    const specLabelEl = document.getElementById('bom-mat-spec-label');
+    const consumptionLabelEl = document.getElementById('bom-mat-consumption-label');
+
+    if (!searchInput || !dropdown) return;
+
+    const selectItem = (m) => {
+      selectedMaterial = m;
+      searchInput.value = m.name;
+      hiddenId.value = m.id;
+      const unitCode = m.unit ? m.unit.code : '';
+      if (consumptionLabelEl) {
+        consumptionLabelEl.innerHTML = `Consumption per finished unit ${unitCode ? `(in <strong>${unitCode}</strong>)` : ''}`;
+      }
+      if (specLabelEl) {
+        const labelText = m.specLabel || 'Specification';
+        specLabelEl.textContent = `${labelText} Value ${m.specRequired ? '(Required)' : '(Optional)'}`;
+      }
+    };
+
+    const renderDropdown = (query = '') => {
+      const q = query.toLowerCase().trim();
+      const matches = this.materials.filter((m) => {
+        if (!q) return true;
+        const name = (m.name || '').toLowerCase();
+        const unit = (m.unit ? m.unit.code : '').toLowerCase();
+        const mode = (m.mode || '').toLowerCase();
+        return name.includes(q) || unit.includes(q) || mode.includes(q);
+      });
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = '<div style="padding: 12px 16px; color: var(--neutral); font-size: 13px;">No matching materials found</div>';
+        dropdown.style.display = 'block';
+        return;
+      }
+
+      dropdown.innerHTML = matches.map((m) => {
+        const isSelected = selectedMaterial && selectedMaterial.id === m.id;
+        const unitCode = m.unit ? m.unit.code : '';
+        const modeLabel = m.mode ? m.mode.replace(/_/g, ' ') : '';
+        return `
+          <div class="mat-search-item" data-id="${m.id}" style="padding: 9px 14px; cursor: pointer; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: ${isSelected ? '#F0F4FF' : '#FFFFFF'}; transition: background 0.15s;">
+            <div>
+              <div style="font-weight: ${isSelected ? '700' : '600'}; font-size: 13.5px; color: var(--secondary);">${m.name}</div>
+              <div style="font-size: 11.5px; color: var(--neutral); margin-top: 2px;">
+                Unit: <strong>${unitCode}</strong> &bull; Mode: <strong>${modeLabel}</strong>
+              </div>
+            </div>
+            ${isSelected ? '<span class="chip chip-success" style="font-size: 10.5px; padding: 2px 7px;">Selected</span>' : ''}
+          </div>
+        `;
+      }).join('');
+
+      dropdown.querySelectorAll('.mat-search-item').forEach((item) => {
+        item.onmouseenter = () => {
+          if (!selectedMaterial || item.getAttribute('data-id') !== selectedMaterial.id) {
+            item.style.backgroundColor = '#F8FAFC';
+          }
+        };
+        item.onmouseleave = () => {
+          if (!selectedMaterial || item.getAttribute('data-id') !== selectedMaterial.id) {
+            item.style.backgroundColor = '#FFFFFF';
+          }
+        };
+        item.onclick = (e) => {
+          e.stopPropagation();
+          const id = item.getAttribute('data-id');
+          const found = this.materials.find((m) => m.id === id);
+          if (found) {
+            selectItem(found);
+            dropdown.style.display = 'none';
+          }
+        };
+      });
+
+      dropdown.style.display = 'block';
+    };
+
+    searchInput.onfocus = () => renderDropdown(searchInput.value);
+    searchInput.oninput = () => {
+      if (selectedMaterial && searchInput.value !== selectedMaterial.name) {
+        hiddenId.value = '';
+      }
+      renderDropdown(searchInput.value);
+    };
+
+    if (clearBtn) {
+      clearBtn.onclick = (e) => {
+        e.stopPropagation();
+        searchInput.value = '';
+        hiddenId.value = '';
+        selectedMaterial = null;
+        if (consumptionLabelEl) consumptionLabelEl.textContent = 'Consumption per finished unit';
+        if (specLabelEl) specLabelEl.textContent = 'Specification Value (Optional)';
+        searchInput.focus();
+        renderDropdown('');
+      };
+    }
+
+    const clickOutsideMatDropdown = (e) => {
+      if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    };
+    document.addEventListener('click', clickOutsideMatDropdown);
   },
 
   openEditBomLineModal(lineId) {

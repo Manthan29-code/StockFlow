@@ -10,7 +10,7 @@ const UsersPage = {
         </div>
         <div style="display: flex; gap: 12px; align-items: center;">
           <div style="position: relative;">
-            <input type="text" id="user-search-input" class="form-control" placeholder="Search user..." autocomplete="off" style="width: 220px; height: 36px; font-size: 13px; padding-right: 26px;">
+            <input type="text" id="user-search-input" class="form-control" autocomplete="off" style="width: 220px; height: 36px; font-size: 13px; padding-right: 26px;">
             <span id="user-search-clear" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none; line-height: 1;">&times;</span>
           </div>
           <button class="btn btn-primary btn-sm" id="create-user-btn" style="height: 36px;">+ Create User</button>
@@ -148,11 +148,11 @@ const UsersPage = {
         <form id="create-user-form">
           <div class="form-group">
             <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-control" placeholder="e.g. ramesh" required>
+            <input type="text" name="username" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" required>
+            <label class="form-label">Password (min. 6 characters)</label>
+            <input type="password" name="password" class="form-control" minlength="6" required>
           </div>
           <div class="form-group">
             <label class="form-label">Role</label>
@@ -220,8 +220,8 @@ const UsersPage = {
       bodyHtml: `
         <form id="reset-pwd-form">
           <div class="form-group">
-            <label class="form-label">New Password</label>
-            <input type="password" name="newPassword" class="form-control" placeholder="Minimum 6 characters" required>
+            <label class="form-label">New Password (min. 6 characters)</label>
+            <input type="password" name="newPassword" class="form-control" minlength="6" required>
           </div>
         </form>
       `,

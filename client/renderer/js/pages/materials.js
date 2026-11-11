@@ -150,7 +150,7 @@ const MaterialsPage = {
         <form id="add-material-form">
           <div class="form-group">
             <label class="form-label">Material Name</label>
-            <input type="text" name="name" class="form-control" placeholder="e.g. 20 mm round bar or Rotor die cast" required>
+            <input type="text" name="name" class="form-control" required>
           </div>
 
           <div class="form-row">
@@ -162,7 +162,7 @@ const MaterialsPage = {
             </div>
             <div class="form-group">
               <label class="form-label">Optional Specification Label</label>
-              <input type="text" name="specLabel" class="form-control" placeholder="e.g. TL, Length, Size, Grade">
+              <input type="text" name="specLabel" class="form-control">
             </div>
           </div>
 
@@ -176,7 +176,7 @@ const MaterialsPage = {
 
           <div class="form-group">
             <label class="form-label">Notes (Optional)</label>
-            <input type="text" name="notes" class="form-control" placeholder="Optional notes">
+            <input type="text" name="notes" class="form-control">
           </div>
         </form>
       `,
@@ -221,7 +221,7 @@ const MaterialsPage = {
             </div>
             <div class="form-group">
               <label class="form-label">Specification Label</label>
-              <input type="text" name="specLabel" class="form-control" value="${material.specLabel || ''}" placeholder="e.g. TL, Length">
+              <input type="text" name="specLabel" class="form-control" value="${material.specLabel || ''}">
             </div>
           </div>
 
@@ -273,11 +273,11 @@ const MaterialsPage = {
         <form id="add-unit-form">
           <div class="form-group">
             <label class="form-label">Unit Code</label>
-            <input type="text" name="code" class="form-control" placeholder="e.g. m, ltr, pcs, box" required>
+            <input type="text" name="code" class="form-control" required>
           </div>
           <div class="form-group">
             <label class="form-label">Unit Description</label>
-            <input type="text" name="name" class="form-control" placeholder="e.g. Meters, Litres, Boxes" required>
+            <input type="text" name="name" class="form-control" required>
           </div>
         </form>
       `,

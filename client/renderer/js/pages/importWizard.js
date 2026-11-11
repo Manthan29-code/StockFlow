@@ -24,7 +24,7 @@ const ImportWizardPage = {
           <div id="material-picker-group" style="flex: 1; min-width: 260px; position: relative;">
             <label class="form-label">Search Target Material</label>
             <div style="position: relative;">
-              <input type="text" id="import-material-search" class="form-control" placeholder="Search target material..." autocomplete="off" style="font-weight: 600; padding-right: 28px;">
+              <input type="text" id="import-material-search" class="form-control" autocomplete="off" style="font-weight: 600; padding-right: 28px;">
               <span id="import-material-clear" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none;">&times;</span>
             </div>
             <div id="import-material-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 240px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
@@ -72,7 +72,7 @@ const ImportWizardPage = {
 
       if (materials.length === 0) {
         searchInput.value = '';
-        searchInput.placeholder = 'No materials available';
+        searchInput.disabled = true;
         return;
       }
 

@@ -11,12 +11,12 @@ const LoginPage = {
           <form id="login-form">
             <div class="form-group">
               <label class="form-label">Username</label>
-              <input type="text" id="login-username" name="username" class="form-control" placeholder="Enter username" required autofocus>
+              <input type="text" id="login-username" name="username" class="form-control" required autofocus>
             </div>
 
             <div class="form-group">
               <label class="form-label">Password</label>
-              <input type="password" id="login-password" name="password" class="form-control" placeholder="Enter password" required>
+              <input type="password" id="login-password" name="password" class="form-control" required>
             </div>
 
             <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 4px; margin-bottom: 20px;">

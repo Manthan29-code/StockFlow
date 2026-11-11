@@ -195,7 +195,7 @@ const SettingsPage = {
 
           <div class="form-group">
             <label class="form-label" style="color: var(--error);">Type "RESTORE" to confirm complete database overwrite:</label>
-            <input type="text" id="restore-confirm-input" class="form-control" placeholder="RESTORE" autocomplete="off">
+            <input type="text" id="restore-confirm-input" class="form-control" autocomplete="off">
           </div>
         </div>
       `,

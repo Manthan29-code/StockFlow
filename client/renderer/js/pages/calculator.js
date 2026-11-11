@@ -14,7 +14,7 @@ const CalculatorPage = {
           <div style="flex: 2; min-width: 320px; position: relative;">
             <label class="form-label">Search Finished Product</label>
             <div style="position: relative;">
-              <input type="text" id="calc-product-search" class="form-control" placeholder="Search product or customer party..." autocomplete="off" style="font-weight: 600; padding-right: 30px;" required>
+              <input type="text" id="calc-product-search" class="form-control" autocomplete="off" style="font-weight: 600; padding-right: 30px;" required>
               <span id="calc-product-clear" title="Clear / View All" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 16px; font-weight: bold; line-height: 1; user-select: none;">&times;</span>
             </div>
             <input type="hidden" id="calc-product-id" required>
@@ -59,7 +59,7 @@ const CalculatorPage = {
 
       if (products.length === 0) {
         searchInput.value = '';
-        searchInput.placeholder = 'No products available';
+        searchInput.disabled = true;
         if (hiddenId) hiddenId.value = '';
         return;
       }

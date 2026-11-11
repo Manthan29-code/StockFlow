@@ -23,7 +23,7 @@ const PartiesProductsPage = {
           <div style="padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;">
             <h3 class="card-title" style="font-size: 14px; margin-bottom: 8px;">Parties / Customers</h3>
             <div style="position: relative;">
-              <input type="text" id="party-search-input" class="form-control" placeholder="Search parties..." autocomplete="off" style="height: 32px; font-size: 12.5px; padding-right: 26px;">
+              <input type="text" id="party-search-input" class="form-control" autocomplete="off" style="height: 32px; font-size: 12.5px; padding-right: 26px;">
               <span id="party-search-clear" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 14px; display: none; line-height: 1;">&times;</span>
             </div>
           </div>
@@ -259,7 +259,7 @@ const PartiesProductsPage = {
         <form id="add-party-form">
           <div class="form-group">
             <label class="form-label">Party Name</label>
-            <input type="text" name="name" class="form-control" placeholder="e.g. Harsh or Rajesh Engineering" required>
+            <input type="text" name="name" class="form-control" required>
           </div>
         </form>
       `,
@@ -316,7 +316,7 @@ const PartiesProductsPage = {
           </div>
           <div class="form-group">
             <label class="form-label">Product Name & Specifications</label>
-            <input type="text" name="name" class="form-control" placeholder="e.g. 0.5 HP ultra rotor SL60 TL271" required>
+            <input type="text" name="name" class="form-control" required>
           </div>
         </form>
       `,

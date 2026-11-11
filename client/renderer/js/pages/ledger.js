@@ -12,7 +12,7 @@ const LedgerPage = {
           <div style="position: relative;">
             <label class="form-label" style="margin-bottom: 4px;">Search Material</label>
             <div style="position: relative; width: 320px;">
-              <input type="text" id="ledger-material-search" class="form-control" placeholder="Search material by name..." autocomplete="off" style="width: 100%; font-weight: 600; padding-right: 30px;">
+              <input type="text" id="ledger-material-search" class="form-control" autocomplete="off" style="width: 100%; font-weight: 600; padding-right: 30px;">
               <span id="ledger-material-clear" title="Clear / View All" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--neutral); font-size: 16px; font-weight: bold; line-height: 1; user-select: none;">&times;</span>
             </div>
             <!-- Live Search Dropdown Filter -->
@@ -84,7 +84,7 @@ const LedgerPage = {
 
       if (materials.length === 0) {
         searchInput.value = '';
-        searchInput.placeholder = 'No materials available';
+        searchInput.disabled = true;
         document.getElementById('ledger-entries-container').innerHTML = `
           <div style="text-align: center; padding: 40px; color: var(--neutral);">No materials exist. Please add a material first.</div>
         `;
@@ -469,22 +469,22 @@ const LedgerPage = {
             </div>
             <div class="form-group">
               <label class="form-label">Incoming Challan No</label>
-              <input type="text" name="challanNo" class="form-control" placeholder="e.g. 24/1596" required>
+              <input type="text" name="challanNo" class="form-control" required>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Quantity received (${unitCode})</label>
-              <input type="number" step="any" name="quantity" class="form-control" placeholder="e.g. 650" required>
+              <input type="number" step="any" name="quantity" class="form-control" required>
             </div>
             <div class="form-group">
               <label class="form-label">Supplier (Optional)</label>
-              <input type="text" name="supplier" class="form-control" placeholder="Supplier name">
+              <input type="text" name="supplier" class="form-control">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Notes (Optional)</label>
-            <input type="text" name="notes" class="form-control" placeholder="Optional notes">
+            <input type="text" name="notes" class="form-control">
           </div>
         </form>
       `,
@@ -544,7 +544,7 @@ const LedgerPage = {
             </div>
             <div class="form-group">
               <label class="form-label">Outgoing Challan No</label>
-              <input type="text" name="challanNo" class="form-control" placeholder="e.g. 690" required>
+              <input type="text" name="challanNo" class="form-control" required>
             </div>
           </div>
 
@@ -552,22 +552,22 @@ const LedgerPage = {
             ${hasSpec ? `
               <div class="form-group">
                 <label class="form-label">${specLabel} <span style="font-weight: 400; color: var(--neutral); font-size: 11px;">(Optional)</span></label>
-                <input type="text" name="specValue" class="form-control" placeholder="Optional ${specLabel}">
+                <input type="text" name="specValue" class="form-control">
               </div>
             ` : ''}
             <div class="form-group">
               <label class="form-label">${isWeightBased ? 'Pieces Issued (QTY)' : `Quantity Issued (${unitCode})`}</label>
-              <input type="number" step="any" name="qty" id="out-input-qty" class="form-control" placeholder="e.g. 85" required>
+              <input type="number" step="any" name="qty" id="out-input-qty" class="form-control" required>
             </div>
             ${isWeightBased ? `
               <div class="form-group">
                 <label class="form-label">Piece Weight (${unitCode})</label>
-                <input type="number" step="any" name="pieceWeight" id="out-input-piece-weight" class="form-control" placeholder="e.g. 0.700" required>
+                <input type="number" step="any" name="pieceWeight" id="out-input-piece-weight" class="form-control" required>
               </div>
             ` : `
               <div class="form-group">
                 <label class="form-label">Piece Weight (Optional)</label>
-                <input type="number" step="any" name="pieceWeight" id="out-input-piece-weight" class="form-control" placeholder="Optional">
+                <input type="number" step="any" name="pieceWeight" id="out-input-piece-weight" class="form-control">
               </div>
             `}
           </div>
@@ -753,7 +753,7 @@ const LedgerPage = {
             ${hasSpec ? `
               <div class="form-group">
                 <label class="form-label">${material.specLabel} <span style="font-weight: 400; color: var(--neutral); font-size: 11px;">(Optional)</span></label>
-                <input type="text" name="specValue" class="form-control" value="${targetRow.specValue || ''}" placeholder="Optional ${material.specLabel}">
+                <input type="text" name="specValue" class="form-control" value="${targetRow.specValue || ''}">
               </div>
             ` : ''}
             <div class="form-group">
@@ -762,7 +762,7 @@ const LedgerPage = {
             </div>
             <div class="form-group">
               <label class="form-label">Piece Weight</label>
-              <input type="number" step="any" name="pieceWeight" class="form-control" value="${targetRow.pieceWeight || ''}" placeholder="Optional">
+              <input type="number" step="any" name="pieceWeight" class="form-control" value="${targetRow.pieceWeight || ''}">
             </div>
           </div>
         </form>
