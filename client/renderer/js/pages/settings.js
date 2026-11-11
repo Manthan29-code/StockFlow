@@ -65,7 +65,7 @@ const SettingsPage = {
           </div>
 
           <button class="btn btn-danger" id="start-restore-btn">
-            Restore From Backup File (.json)
+            Restore From Backup File 
           </button>
         </div>
       </div>

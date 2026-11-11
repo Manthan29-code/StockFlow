@@ -1,7 +1,11 @@
 const AuditPage = {
   currentEntity: '',
+  limit: 25,
+  page: 1,
+  total: 0,
 
   async render(container) {
+    this.page = 1;
     container.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
         <div>
@@ -18,6 +22,7 @@ const AuditPage = {
             <option value="products">Products</option>
             <option value="bom_lines">BOM Lines</option>
             <option value="users">Users</option>
+            <option value="units">Units</option>
           </select>
           <button class="btn btn-secondary btn-sm" id="audit-refresh-btn">Refresh</button>
         </div>
@@ -27,37 +32,57 @@ const AuditPage = {
         <div id="audit-table-container">
           <div style="text-align: center; padding: 30px; color: var(--neutral);">Loading audit logs...</div>
         </div>
+        <div id="audit-pagination-container"></div>
       </div>
     `;
 
     const select = document.getElementById('audit-entity-filter');
-    select.onchange = () => {
-      this.currentEntity = select.value;
-      this.loadAuditLogs();
-    };
+    if (select) {
+      select.value = this.currentEntity;
+      select.onchange = () => {
+        this.currentEntity = select.value;
+        this.page = 1;
+        this.loadAuditLogs();
+      };
+    }
 
-    document.getElementById('audit-refresh-btn').onclick = () => this.loadAuditLogs();
+    const refreshBtn = document.getElementById('audit-refresh-btn');
+    if (refreshBtn) {
+      refreshBtn.onclick = () => this.loadAuditLogs();
+    }
 
     await this.loadAuditLogs();
   },
 
   async loadAuditLogs() {
-    const container = document.getElementById('audit-table-container');
-    if (!container) return;
+    const tableContainer = document.getElementById('audit-table-container');
+    const paginationContainer = document.getElementById('audit-pagination-container');
+    if (!tableContainer) return;
+
+    tableContainer.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--neutral);">Loading audit logs...</div>';
+    if (paginationContainer) paginationContainer.innerHTML = '';
+
+    const offset = (this.page - 1) * this.limit;
 
     try {
       const res = await Api.get('/api/admin/audit', {
         entity: this.currentEntity || undefined,
-        limit: 100,
+        limit: this.limit,
+        offset,
       });
 
+      if (!document.getElementById('audit-table-container')) return;
+
+      this.total = res.total || 0;
       const logs = res.logs || [];
+
       if (logs.length === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 30px; color: var(--neutral);">No audit logs found.</div>';
+        tableContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--neutral);">No audit logs found.</div>';
+        if (paginationContainer) paginationContainer.innerHTML = '';
         return;
       }
 
-      container.innerHTML = `
+      tableContainer.innerHTML = `
         <table class="data-table">
           <thead>
             <tr>
@@ -117,8 +142,76 @@ const AuditPage = {
           </tbody>
         </table>
       `;
+
+      // Render Pagination Footer
+      const totalPages = Math.max(1, Math.ceil(this.total / this.limit));
+      const startRecord = this.total === 0 ? 0 : offset + 1;
+      const endRecord = Math.min(offset + logs.length, this.total);
+
+      if (paginationContainer) {
+        paginationContainer.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; gap: 12px;">
+            <!-- Left: Records per page selector & record counts -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 12.5px; color: var(--neutral);">Records per page:</span>
+              <select id="audit-per-page-select" class="form-control" style="width: 75px; height: 30px; font-size: 12.5px; padding: 0 8px; font-weight: 600;">
+                <option value="25" ${this.limit === 25 ? 'selected' : ''}>25</option>
+                <option value="50" ${this.limit === 50 ? 'selected' : ''}>50</option>
+                <option value="100" ${this.limit === 100 ? 'selected' : ''}>100</option>
+              </select>
+              <span style="font-size: 12.5px; color: var(--neutral); margin-left: 12px;">
+                Showing <strong>${startRecord}–${endRecord}</strong> of <strong>${this.total}</strong> records
+              </span>
+            </div>
+
+            <!-- Right: Page navigation buttons -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="btn btn-secondary btn-sm" id="audit-prev-btn" ${this.page <= 1 ? 'disabled' : ''} style="padding: 0 12px; font-size: 12px;">
+                &larr; Previous
+              </button>
+              <span style="font-size: 12.5px; color: var(--secondary); font-weight: 600; padding: 0 6px;">
+                Page ${this.page} of ${totalPages}
+              </span>
+              <button class="btn btn-secondary btn-sm" id="audit-next-btn" ${this.page >= totalPages ? 'disabled' : ''} style="padding: 0 12px; font-size: 12px;">
+                Next &rarr;
+              </button>
+            </div>
+          </div>
+        `;
+
+        const perPageSelect = document.getElementById('audit-per-page-select');
+        if (perPageSelect) {
+          perPageSelect.onchange = () => {
+            this.limit = Number(perPageSelect.value);
+            this.page = 1;
+            this.loadAuditLogs();
+          };
+        }
+
+        const prevBtn = document.getElementById('audit-prev-btn');
+        if (prevBtn) {
+          prevBtn.onclick = () => {
+            if (this.page > 1) {
+              this.page--;
+              this.loadAuditLogs();
+            }
+          };
+        }
+
+        const nextBtn = document.getElementById('audit-next-btn');
+        if (nextBtn) {
+          nextBtn.onclick = () => {
+            if (this.page < totalPages) {
+              this.page++;
+              this.loadAuditLogs();
+            }
+          };
+        }
+      }
     } catch (err) {
-      container.innerHTML = `<div style="color: var(--error); padding: 20px;">${err.message}</div>`;
+      if (tableContainer) {
+        tableContainer.innerHTML = `<div style="color: var(--error); padding: 20px;">${err.message}</div>`;
+      }
     }
   },
 
