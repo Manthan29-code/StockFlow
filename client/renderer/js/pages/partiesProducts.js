@@ -323,9 +323,16 @@ const PartiesProductsPage = {
       confirmText: 'Create Product',
       onConfirm: async () => {
         const form = document.getElementById('add-prod-form');
+        const name = form.name.value.trim();
+        const existing = this.products.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
+        if (existing) {
+          const partyName = existing.party ? existing.party.name : 'another party';
+          Toast.show(`Product '${name}' already exists for customer '${partyName}'`, 'error');
+          return false;
+        }
         const created = await Api.post('/api/products', {
           partyId: form.partyId.value,
-          name: form.name.value.trim(),
+          name,
         });
         Toast.show('Product created successfully', 'success');
         this.selectedPartyId = created.partyId;
@@ -352,8 +359,15 @@ const PartiesProductsPage = {
       confirmText: 'Save Changes',
       onConfirm: async () => {
         const form = document.getElementById('edit-prod-form');
+        const name = form.name.value.trim();
+        const existing = this.products.find((p) => p.id !== productId && p.name.trim().toLowerCase() === name.toLowerCase());
+        if (existing) {
+          const partyName = existing.party ? existing.party.name : 'another party';
+          Toast.show(`Product '${name}' already exists for customer '${partyName}'`, 'error');
+          return false;
+        }
         await Api.patch(`/api/products/${productId}`, {
-          name: form.name.value.trim(),
+          name,
           version: prod.version,
         });
         Toast.show('Product updated', 'success');

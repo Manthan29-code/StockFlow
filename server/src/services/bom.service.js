@@ -16,6 +16,7 @@ const {
   calculateEntryLedger,
   calculateMaterialStock,
   calculateBomRequirements,
+  toDecimal,
 } = require('@stockflow/shared');
 const { mapBomLine, formatDateToYYYYMMDD } = require('../db/mappers');
 
@@ -198,10 +199,222 @@ async function calculateRequirements(productId, productionQty) {
   };
 }
 
+async function recordProductionDispatch(actorId, productId, { quantity, outwardNo, outDate }) {
+  const prodQty = toDecimal(quantity);
+  if (prodQty.lte(0)) {
+    throw ValidationError('Production quantity must be greater than zero');
+  }
+  if (!outwardNo || !String(outwardNo).trim()) {
+    throw ValidationError('Outward No is required');
+  }
+  if (!outDate) {
+    throw ValidationError('Outward date is required');
+  }
+
+  const product = await productsRepo.findById(productId, true);
+  if (!product) {
+    throw NotFoundError('Product not found');
+  }
+
+  const bomLines = product.bomLines || [];
+  if (bomLines.length === 0) {
+    throw ValidationError(`Cannot produce product '${product.name}' because it has no BOM recipe lines defined`);
+  }
+
+  const result = await withTransaction(async (tx) => {
+    const deductionsSummary = [];
+
+    for (const line of bomLines) {
+      const material = line.material;
+      const bomConsumption = toDecimal(line.consumption);
+      const isWeightBased = material.deductBy === 'qty_x_piece_weight';
+
+      // Compute total required deduction
+      let neededDeduction;
+      let pieceWeight = null;
+      if (isWeightBased) {
+        neededDeduction = prodQty.times(bomConsumption);
+        pieceWeight = bomConsumption.toString();
+      } else {
+        neededDeduction = prodQty.times(bomConsumption);
+      }
+
+      const specValue = line.specValue || null;
+
+      // Fetch all incoming entries for this material ordered by inDate ASC, createdAt ASC
+      const incomingEntries = await tx.incomingEntry.findMany({
+        where: { materialId: material.id },
+        include: { outgoingRows: true },
+        orderBy: [{ inDate: 'asc' }, { createdAt: 'asc' }],
+      });
+
+      if (incomingEntries.length === 0) {
+        const createdPending = await tx.incomingEntry.create({
+          data: {
+            materialId: material.id,
+            inDate: new Date(outDate),
+            challanNo: 'PENDING-INWARD',
+            quantity: 0,
+            supplier: 'Pending Delivery',
+            notes: 'Auto-created for advance production dispatch',
+            createdBy: actorId,
+            updatedBy: actorId,
+          },
+        });
+        incomingEntries.push({ ...createdPending, outgoingRows: [] });
+      }
+
+      // Compute balance on each incoming entry
+      const entriesWithBalance = incomingEntries.map((e) => {
+        const ledger = calculateEntryLedger(
+          { quantity: e.quantity.toString() },
+          (e.outgoingRows || []).map((r) => ({
+            outDate: formatDateToYYYYMMDD(r.outDate),
+            rowNo: r.rowNo,
+            qty: r.qty.toString(),
+            pieceWeight: r.pieceWeight ? r.pieceWeight.toString() : null,
+            deducted: r.deducted.toString(),
+          })),
+          material.deductBy
+        );
+        return {
+          entry: e,
+          balance: toDecimal(ledger.finalBalance),
+          existingRows: e.outgoingRows || [],
+        };
+      });
+
+      const openEntries = entriesWithBalance.filter((eb) => eb.balance.gt(0));
+      let remainingNeeded = neededDeduction;
+
+      if (openEntries.length > 0) {
+        for (const item of openEntries) {
+          if (remainingNeeded.lte(0)) break;
+
+          const available = item.balance;
+          const deductFromThis = remainingNeeded.lte(available) ? remainingNeeded : available;
+
+          let sliceQty;
+          let sliceTotalWeight = null;
+          if (isWeightBased) {
+            sliceQty = deductFromThis.dividedBy(bomConsumption);
+            sliceTotalWeight = deductFromThis.toString();
+          } else {
+            sliceQty = deductFromThis;
+          }
+
+          let maxRowNo = 0;
+          for (const r of item.existingRows) {
+            if (r.rowNo > maxRowNo) maxRowNo = r.rowNo;
+          }
+
+          await tx.outgoingTransaction.create({
+            data: {
+              incomingEntryId: item.entry.id,
+              outDate: new Date(outDate),
+              challanNo: outwardNo.trim(),
+              rowNo: maxRowNo + 1,
+              qty: sliceQty.toString(),
+              pieceWeight,
+              specValue,
+              totalWeight: sliceTotalWeight,
+              deducted: deductFromThis.toString(),
+              createdBy: actorId,
+              updatedBy: actorId,
+            },
+          });
+
+          item.existingRows.push({ rowNo: maxRowNo + 1 });
+          remainingNeeded = remainingNeeded.minus(deductFromThis);
+        }
+      }
+
+      // If still deficit remaining, last entry absorbs remainder into negative (minus running balance)
+      if (remainingNeeded.gt(0)) {
+        const targetItem = entriesWithBalance[entriesWithBalance.length - 1];
+        let sliceQty;
+        let sliceTotalWeight = null;
+        if (isWeightBased) {
+          sliceQty = remainingNeeded.dividedBy(bomConsumption);
+          sliceTotalWeight = remainingNeeded.toString();
+        } else {
+          sliceQty = remainingNeeded;
+        }
+
+        let maxRowNo = 0;
+        for (const r of targetItem.existingRows) {
+          if (r.rowNo > maxRowNo) maxRowNo = r.rowNo;
+        }
+
+        await tx.outgoingTransaction.create({
+          data: {
+            incomingEntryId: targetItem.entry.id,
+            outDate: new Date(outDate),
+            challanNo: outwardNo.trim(),
+            rowNo: maxRowNo + 1,
+            qty: sliceQty.toString(),
+            pieceWeight,
+            specValue,
+            totalWeight: sliceTotalWeight,
+            deducted: remainingNeeded.toString(),
+            createdBy: actorId,
+            updatedBy: actorId,
+          },
+        });
+      }
+
+      deductionsSummary.push({
+        materialId: material.id,
+        materialName: material.name,
+        deducted: neededDeduction.toString(),
+        unit: material.unit ? material.unit.code : '',
+        specValue,
+      });
+    }
+
+    const rev = await metaRepo.bumpRevision(tx);
+    await auditRepo.createAuditEntry({
+      userId: actorId,
+      action: 'CREATE',
+      entity: 'production_dispatch',
+      entityId: productId,
+      after: {
+        productId,
+        productName: product.name,
+        quantity: prodQty.toString(),
+        outwardNo: outwardNo.trim(),
+        outDate,
+        materialsDeducted: deductionsSummary,
+      },
+    }, tx);
+
+    return { revision: rev, deductionsSummary };
+  });
+
+  broadcast({
+    type: 'changed',
+    revision: result.revision,
+    entity: 'production',
+    productId,
+    by: actorId,
+  });
+
+  return {
+    success: true,
+    productId,
+    productName: product.name,
+    quantity: prodQty.toString(),
+    outwardNo: outwardNo.trim(),
+    outDate,
+    materialsDeducted: result.deductionsSummary,
+  };
+}
+
 module.exports = {
   addBomLine,
   editBomLine,
   deleteBomLine,
   calculateRequirements,
+  recordProductionDispatch,
 };
 

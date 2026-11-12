@@ -66,7 +66,6 @@ function createMaterialWorkbook(material, entriesWithLedger = []) {
   columns.push({ header: isWeightBased ? headers.QTY : headers.OUT_QTY, key: 'outQty', width: 12 });
 
   if (isWeightBased || hasPieceWeight) {
-    columns.push({ header: headers.PIECE_WEIGHT, key: 'pieceWeight', width: 12 });
     columns.push({ header: headers.TOTAL_WEIGHT, key: 'totalWeight', width: 14 });
   }
 

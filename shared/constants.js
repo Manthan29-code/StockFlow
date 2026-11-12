@@ -29,10 +29,10 @@ const ERROR_CODES = Object.freeze({
 const EXPORT_HEADERS = Object.freeze({
   QTY_X_PIECE_WEIGHT: {
     IN_DATE: 'IN DATE',
-    CH_NO_IN: 'CH NO IN',
+    CH_NO_IN: 'INWARD NO',
     WEIGHT: 'WEIGHT',
     OUT_DATE: 'OUT DATE',
-    CH_NO_OUT: 'CH NO OUT',
+    CH_NO_OUT: 'OUTWARD NO',
     QTY: 'QTY',
     PIECE_WEIGHT: 'WIGHT',
     TOTAL_WEIGHT: 'TOTAL WIGHT',
@@ -40,10 +40,10 @@ const EXPORT_HEADERS = Object.freeze({
   },
   DIRECT: {
     IN_DATE: 'IN DATE',
-    CH_NO_IN: 'CH NO IN',
+    CH_NO_IN: 'INWARD NO',
     IN_QTY: 'IN QTY',
     OUT_DATE: 'OUT DATE',
-    CH_NO_OUT: 'CH NO OUT',
+    CH_NO_OUT: 'OUTWARD NO',
     OUT_QTY: 'OUT QTY',
     PIECE_WEIGHT: 'WIGHT',
     TOTAL_WEIGHT: 'TOTAL WIGHT',

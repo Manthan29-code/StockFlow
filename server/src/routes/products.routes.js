@@ -40,9 +40,10 @@ router.get('/products/:id', auth, async (req, res, next) => {
 // 21. POST /products (A)
 router.post('/products', auth, requireAdmin, validate(createProductSchema), async (req, res, next) => {
   try {
-    const existing = await productsRepo.findByPartyAndName(req.body.partyId, req.body.name);
+    const existing = await productsRepo.findByName(req.body.name);
     if (existing) {
-      throw DuplicateError(`Product '${req.body.name}' already exists for this party`);
+      const partyName = existing.party ? existing.party.name : 'another party';
+      throw DuplicateError(`Product '${req.body.name}' already exists for customer '${partyName}'`);
     }
 
     const { product, revision } = await withTransaction(async (tx) => {
@@ -92,10 +93,11 @@ router.patch('/products/:id', auth, requireAdmin, validate(updateProductSchema),
     const targetPartyId = req.body.partyId || existing.partyId;
     const targetName = req.body.name || existing.name;
 
-    if (targetPartyId !== existing.partyId || targetName !== existing.name) {
-      const duplicate = await productsRepo.findByPartyAndName(targetPartyId, targetName);
+    if (targetName !== existing.name) {
+      const duplicate = await productsRepo.findByName(targetName);
       if (duplicate && duplicate.id !== req.params.id) {
-        throw DuplicateError(`Product '${targetName}' already exists for this party`);
+        const partyName = duplicate.party ? duplicate.party.name : 'another party';
+        throw DuplicateError(`Product '${targetName}' already exists for customer '${partyName}'`);
       }
     }
 
@@ -141,6 +143,21 @@ router.get('/products/:id/requirement', auth, async (req, res, next) => {
 
     const result = await bomService.calculateRequirements(req.params.id, qty);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /products/:id/produce (S) - Record production and deduct BOM stock
+router.post('/products/:id/produce', auth, async (req, res, next) => {
+  try {
+    const { quantity, outwardNo, outDate } = req.body;
+    const result = await bomService.recordProductionDispatch(req.user.id, req.params.id, {
+      quantity,
+      outwardNo,
+      outDate,
+    });
+    res.status(201).json(result);
   } catch (err) {
     next(err);
   }

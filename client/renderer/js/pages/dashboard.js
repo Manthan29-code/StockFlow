@@ -93,7 +93,7 @@ const DashboardPage = {
               <!-- Right: Open Ledger Button -->
               <div style="margin-left: auto;">
                 <button class="btn btn-secondary btn-sm" style="font-weight: 600; white-space: nowrap;">
-                  Open Ledger &rarr;
+                  Open Records &rarr;
                 </button>
               </div>
             </div>

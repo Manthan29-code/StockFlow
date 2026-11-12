@@ -264,7 +264,74 @@ const CalculatorPage = {
             </tbody>
           </table>
         </div>
+
+        <div class="card" style="margin-top: 24px; padding: 22px; background: #FFFFFF; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <h3 style="font-size: 16px; font-weight: 700; color: var(--secondary); margin-bottom: 3px;">
+                Record Production & Issue Materials
+              </h3>
+              <p style="font-size: 13px; color: var(--neutral); margin: 0;">
+                Automatically deducts all BOM materials above from live stock using FIFO inward allocation.
+              </p>
+            </div>
+            ${hasShortfall ? `
+              <span class="chip chip-warning" style="font-size: 12px; padding: 4px 10px;">
+                Advance Issue Permitted (Deficit will show as minus balance)
+              </span>
+            ` : ''}
+          </div>
+
+          <form id="prod-dispatch-form" style="display: flex; gap: 18px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 170px;">
+              <label class="form-label">Outward Date</label>
+              <input type="date" id="dispatch-date" class="form-control" value="${new Date().toISOString().substring(0, 10)}" required>
+            </div>
+            <div style="flex: 1; min-width: 170px;">
+              <label class="form-label">Outward No</label>
+              <input type="text" id="dispatch-outward-no" class="form-control" required>
+            </div>
+            <div>
+              <button type="submit" id="dispatch-submit-btn" class="btn btn-primary" style="height: 38px; font-weight: 600; padding: 0 20px;">
+                Issue Material & Deduct Stock &rarr;
+              </button>
+            </div>
+          </form>
+        </div>
       `;
+
+      const dispatchForm = document.getElementById('prod-dispatch-form');
+      if (dispatchForm) {
+        dispatchForm.onsubmit = async (e) => {
+          e.preventDefault();
+          const outDate = document.getElementById('dispatch-date').value;
+          const outwardNo = document.getElementById('dispatch-outward-no').value.trim();
+          const submitBtn = document.getElementById('dispatch-submit-btn');
+
+          if (!outwardNo) {
+            Toast.show('Outward No is required', 'warning');
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Deducting Stock...';
+
+          try {
+            await Api.post(`/api/products/${productId}/produce`, {
+              quantity: Number(qty),
+              outwardNo,
+              outDate,
+            });
+
+            Toast.show(`Successfully recorded production for ${Format.number(qty)} units of ${result.productName}! All materials deducted.`, 'success', 6000);
+            await this.calculate();
+          } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Issue Material & Deduct Stock \u2192';
+            Toast.show(err.message, 'error');
+          }
+        };
+      }
     } catch (err) {
       container.innerHTML = `<div style="color: var(--error); padding: 20px;">Failed to calculate: ${err.message}</div>`;
     }

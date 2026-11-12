@@ -25,7 +25,7 @@ const LedgerPage = {
         </div>
 
         <div style="display: flex; gap: 10px; align-items: flex-end;">
-          <button class="btn btn-secondary btn-sm" id="ledger-export-btn">Export Material Excel</button>
+          <button class="btn btn-secondary btn-sm" id="ledger-export-btn">Export</button>
           <button class="btn btn-primary btn-sm" id="ledger-add-incoming-btn">+ Add Incoming Entry</button>
         </div>
       </div>
@@ -37,7 +37,7 @@ const LedgerPage = {
           <button class="btn btn-sm ${this.currentFilter === 'partial' ? 'btn-primary' : 'btn-secondary'}" data-filter="partial">Open / Partial</button>
           <button class="btn btn-sm ${this.currentFilter === 'not_issued' ? 'btn-primary' : 'btn-secondary'}" data-filter="not_issued">Not Issued</button>
           <button class="btn btn-sm ${this.currentFilter === 'closed' ? 'btn-primary' : 'btn-secondary'}" data-filter="closed">Closed</button>
-          <button class="btn btn-sm ${this.currentFilter === 'incoming_only' ? 'btn-primary' : 'btn-secondary'}" data-filter="incoming_only" style="margin-left: 6px; border-left: 2px solid var(--border);">Incoming Challans (Manage)</button>
+          <button class="btn btn-sm ${this.currentFilter === 'incoming_only' ? 'btn-primary' : 'btn-secondary'}" data-filter="incoming_only" style="margin-left: 6px; border-left: 2px solid var(--border);">Inward Records (Manage)</button>
         </div>
         <div style="font-size: 12.5px; color: var(--neutral);" id="ledger-entry-counts"></div>
       </div>
@@ -215,12 +215,12 @@ const LedgerPage = {
       const totalInQty = entries.reduce((acc, e) => acc + (Number(e.quantity) || 0), 0);
       const totalBalance = entries.reduce((acc, e) => acc + (Number(e.balance) || 0), 0);
 
-      document.getElementById('ledger-entry-counts').textContent = `Showing ${entries.length} incoming challans`;
+      document.getElementById('ledger-entry-counts').textContent = `Showing ${entries.length} inward records`;
       container.innerHTML = `
         <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
           <div style="padding: 12px 18px; background: var(--surface); border-bottom: 1px solid var(--border); font-weight: 600; font-size: 13.5px; color: var(--secondary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-              <span>Incoming Challans Directory (${entries.length} total shipments)</span>
+              <span>Inward Directory (${entries.length} total entries)</span>
               <span class="chip chip-neutral" style="font-weight: 700; font-size: 13px; font-family: var(--font-mono); background: #FFFFFF; border: 1px solid var(--border); padding: 4px 10px;">
                 Total In: ${Format.number(totalInQty)} ${unitCode}
               </span>
@@ -235,7 +235,7 @@ const LedgerPage = {
               <thead>
                 <tr>
                   <th style="width: 120px;">IN DATE</th>
-                  <th style="width: 140px;">CHALLAN NO IN</th>
+                  <th style="width: 140px;">INWARD NO</th>
                   <th class="num-cell" style="width: 130px;">IN QUANTITY (${unitCode})</th>
                   <th>SUPPLIER</th>
                   <th class="num-cell" style="width: 140px;">BALANCE (${unitCode})</th>
@@ -330,7 +330,7 @@ const LedgerPage = {
               </div>
               <div style="width: 1px; height: 28px; background: var(--border);"></div>
               <div>
-                <span style="font-size: 11px; text-transform: uppercase; color: var(--neutral); font-weight: 600;">CHALLAN NO IN</span>
+                <span style="font-size: 11px; text-transform: uppercase; color: var(--neutral); font-weight: 600;">INWARD NO</span>
                 <div style="font-weight: 600; color: var(--secondary); font-family: var(--font-mono); font-size: 14px;">${entry.challanNo}</div>
               </div>
               <div style="width: 1px; height: 28px; background: var(--border);"></div>
@@ -362,7 +362,7 @@ const LedgerPage = {
               <thead>
                 <tr>
                   <th style="width: 110px;">OUT DATE</th>
-                  <th style="width: 120px;">CH NO OUT</th>
+                  <th style="width: 120px;">OUTWARD NO</th>
                   ${hasSpec ? `<th style="width: 100px;">${specLabel}</th>` : ''}
                   <th class="num-cell" style="width: 100px;">${isWeightBased ? 'QTY (PCS)' : 'OUT QTY'}</th>
                   ${isWeightBased ? `
@@ -468,7 +468,7 @@ const LedgerPage = {
               <input type="date" name="inDate" class="form-control" value="${today}" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Incoming Challan No</label>
+              <label class="form-label">Inward No</label>
               <input type="text" name="challanNo" class="form-control" required>
             </div>
           </div>
@@ -543,7 +543,7 @@ const LedgerPage = {
               <input type="date" name="outDate" class="form-control" value="${today}" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Outgoing Challan No</label>
+              <label class="form-label">Outward No</label>
               <input type="text" name="challanNo" class="form-control" required>
             </div>
           </div>
@@ -597,7 +597,7 @@ const LedgerPage = {
         const specValue = form.specValue ? form.specValue.value.trim() : null;
 
         if (!challanNo) {
-          Toast.show('Outgoing Challan No is required', 'warning');
+          Toast.show('Outward No is required', 'warning');
           return false;
         }
 
@@ -668,7 +668,7 @@ const LedgerPage = {
     if (!entry) return;
 
     Modal.open({
-      title: `Edit Incoming Entry (${entry.challanNo})`,
+      title: `Edit Inward Entry (${entry.challanNo})`,
       bodyHtml: `
         <form id="edit-incoming-form">
           <div class="form-row">
@@ -677,7 +677,7 @@ const LedgerPage = {
               <input type="date" name="inDate" class="form-control" value="${entry.inDate}" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Challan No</label>
+              <label class="form-label">Inward No</label>
               <input type="text" name="challanNo" class="form-control" value="${entry.challanNo}" required>
             </div>
           </div>
@@ -736,7 +736,7 @@ const LedgerPage = {
     const hasSpec = Boolean(material.specLabel);
 
     Modal.open({
-      title: `Edit Outgoing Row (${targetRow.challanNo})`,
+      title: `Edit Outward Row (${targetRow.challanNo})`,
       bodyHtml: `
         <form id="edit-outgoing-form">
           <div class="form-row">
@@ -745,7 +745,7 @@ const LedgerPage = {
               <input type="date" name="outDate" class="form-control" value="${targetRow.outDate}" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Challan No</label>
+              <label class="form-label">Outward No</label>
               <input type="text" name="challanNo" class="form-control" value="${targetRow.challanNo}" required>
             </div>
           </div>
@@ -804,15 +804,61 @@ const LedgerPage = {
     });
   },
 
-  async exportCurrentMaterial() {
-    if (!this.currentMaterialId) return;
-    try {
-      const res = await window.api.exportMaterial(this.currentMaterialId);
-      if (!res.canceled) {
-        Toast.show(`Workbook saved: ${res.filePath}`, 'success');
-      }
-    } catch (err) {
-      Toast.show(err.message, 'error');
+  exportCurrentMaterial() {
+    if (!this.currentMaterialId || !this.ledgerData || !this.ledgerData.material) return;
+
+    Modal.open({
+      title: 'Export Material Records',
+      width: '440px',
+      bodyHtml: `
+        <div style="text-align: center; padding: 10px 0;">
+          <p style="font-size: 13.5px; color: var(--neutral); margin-bottom: 20px;">
+            Choose export format for <strong>${this.ledgerData.material.name}</strong>:
+          </p>
+          <div style="display: flex; gap: 14px; justify-content: center;">
+            <button class="btn btn-secondary" id="export-excel-choice-btn" style="flex: 1; padding: 12px; font-weight: 600;">
+              Export Excel (.xlsx)
+            </button>
+            <button class="btn btn-primary" id="export-pdf-choice-btn" style="flex: 1; padding: 12px; font-weight: 600;">
+              Export PDF (.pdf)
+            </button>
+          </div>
+        </div>
+      `,
+      cancelText: 'Cancel',
+      confirmText: 'Done',
+      onConfirm: async () => true,
+    });
+
+    const excelBtn = document.getElementById('export-excel-choice-btn');
+    const pdfBtn = document.getElementById('export-pdf-choice-btn');
+
+    if (excelBtn) {
+      excelBtn.onclick = async () => {
+        Modal.close();
+        try {
+          const res = await window.api.exportMaterial(this.currentMaterialId);
+          if (res && !res.canceled) {
+            Toast.show(`Excel workbook saved: ${res.filePath}`, 'success');
+          }
+        } catch (err) {
+          Toast.show(err.message, 'error');
+        }
+      };
+    }
+
+    if (pdfBtn) {
+      pdfBtn.onclick = async () => {
+        Modal.close();
+        try {
+          const res = await window.api.exportMaterialPdf(this.currentMaterialId);
+          if (res && !res.canceled) {
+            Toast.show(`PDF document saved: ${res.filePath}`, 'success');
+          }
+        } catch (err) {
+          Toast.show(err.message, 'error');
+        }
+      };
     }
   },
 };
