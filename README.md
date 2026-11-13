@@ -24,18 +24,20 @@ StockFlow preserves the familiar layout of traditional manufacturing dispatch re
 - **Dynamic Balance Calculation (Never Stored):**
   - Storing static balance numbers causes synchronization anomalies and corrupt balances when rows are edited or audited. StockFlow **never stores balances** in the database. Balances are dynamically calculated using arbitrary-precision math (`decimal.js`).
   - Total material stock is always the sum of all its incoming entry balances.
-- **Production Dispatch & Live Calculator (FIFO Waterfall Deduction):**
-  - Map finished products to customer parties with globally unique product names across all accounts.
-  - Define multi-line BOM recipes with consumption rates and specification values (e.g. `TL: 300mm`).
-  - Run the **Dispatch & Calculator** to test planned production quantities (e.g., 500 units) against live stock.
-  - **1-Click Production Dispatch:** Deducts required raw materials from live stock using FIFO cascading across older open inward entries. If live stock is temporarily insufficient, advance issues into negative balances are permitted so shop floor production is never halted.
-  - **Negative Balance Auto-Settlement:** When new incoming stock arrives later, the system automatically absorbs and clears older deficits, bringing previous negative entries back to zero.
+- **Dedicated Dispatch & Material Planning Separation:**
+  - **Material Planning (`#calculator`):** Dedicated route to calculate raw material requirements, verify live stock availability, and detect inventory shortfalls against finished product Bill of Materials before committing to production.
+  - **Dispatch (`#dispatch`):** Dedicated route to record production dispatches and issue materials from live stock using FIFO inward allocation. Features an editable **Dispatch Records** history table with exact columns: `PARTY NAME | PRODUCT NAME | PLANNED QUANTITY | OUTWARD DATE | OUTWARD NO | ACTIONS (Edit)`.
+  - **Synchronized Dispatch Editing:** Editing any recorded production dispatch (adjusting planned quantity, outward date, or outward number) automatically resynchronizes and cascades updates across all corresponding outward transactions, ensuring 100% running balance consistency across prior and subsequent entries.
+- **Role Permissions & Admin Safety:**
+  - **Staff Role Restrictions:** Staff accounts can manage day-to-day operations (Dashboard, Report, Inward, Dispatch, Material Planning, Materials & Units, Parties & Products, Export) while sensitive administrative tools (`User Access`, `Audit Log`, and `Backup & Settings`) are strictly hidden and guarded.
+  - **Admin Account Safeguards:** In User Access & Security, action buttons (`Make Staff`, `Disable`, `Reset Password`, `Delete`) are automatically removed for administrator accounts to prevent accidental lockouts or privilege loss.
 - **Realtime Multi-User Desktop Experience:**
   - Powered by Electron, native WebSockets, and fallback polling.
   - When an operator on Machine A issues material, the ledger on Machine B updates within 1 second without clearing open forms.
   - **"Added By" User Badges:** Every incoming challan and outgoing dispatch row features the creator's avatar initials in their assigned color, with tooltips showing user name and exact timestamp.
 - **Excel & Print-Ready A4 Portrait PDF Export:**
-  - **Dual Export Modals:** Operators can export both Material Records and Customer BOM recipes directly to **Excel (`.xlsx`)** or **PDF (`.pdf`)**.
+  - **Dual Export Modals:** Operators can export both Material Records and Customer BOM recipes directly to **Excel (`.xlsx`)** or **PDF (`.pdf`)** with clean, uncluttered modal cards.
+  - **Excel Export Center Simplification:** Streamlined to focus on Full System Live Export and Offline Backup JSON Export; individual material ledgers are exported directly from the Report view.
   - **A4 Portrait PDF Formatting:** Generates clean, centered vector PDFs with compact, content-proportional column widths (`column name + 2 chars`), centered numerals, and crisp gridlines matching factory Excel reports.
   - **Offline Recovery Export:** If the server or database is completely offline, operators can export dispatch workbooks directly from local backup JSON snapshots.
   - **Import Wizard:** Parse legacy Excel stock sheets with column auto-detection, preview recalculated balances, detect over-issues, and commit all-or-nothing in a single transaction.

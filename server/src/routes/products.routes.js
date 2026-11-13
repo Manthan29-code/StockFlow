@@ -24,6 +24,31 @@ router.get('/products', auth, async (req, res, next) => {
   }
 });
 
+// GET /products/dispatches (S) - List production dispatches
+router.get('/products/dispatches', auth, async (req, res, next) => {
+  try {
+    const dispatches = await bomService.listProductionDispatches();
+    res.json(dispatches);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /products/dispatches/:id (S) - Edit production dispatch
+router.patch('/products/dispatches/:id', auth, async (req, res, next) => {
+  try {
+    const { quantity, outwardNo, outDate } = req.body;
+    const result = await bomService.updateProductionDispatch(req.user.id, req.params.id, {
+      quantity,
+      outwardNo,
+      outDate,
+    });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 20. GET /products/:id (S)
 router.get('/products/:id', auth, async (req, res, next) => {
   try {

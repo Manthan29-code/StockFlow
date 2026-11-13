@@ -90,14 +90,12 @@ const PartiesProductsPage = {
           Choose the export format for <strong>${partyLabel}</strong>:
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px;">
-          <div id="party-bom-format-excel" style="border: 2px solid var(--primary); background: #F0F4FF; border-radius: var(--radius-md); padding: 16px; cursor: pointer; text-align: center; transition: all 0.15s;">
-            <div style="font-size: 28px; margin-bottom: 6px;">📊</div>
-            <div style="font-weight: 700; color: var(--secondary); font-size: 14px;">Excel (.xlsx)</div>
+          <div id="party-bom-format-excel" style="border: 2px solid var(--primary); background: #F0F4FF; border-radius: var(--radius-md); padding: 18px 16px; cursor: pointer; text-align: center; transition: all 0.15s;">
+            <div style="font-weight: 700; color: var(--secondary); font-size: 14.5px;">Excel (.xlsx)</div>
             <div style="font-size: 11.5px; color: var(--neutral); margin-top: 4px;">Standard factory workbook</div>
           </div>
-          <div id="party-bom-format-pdf" style="border: 2px solid var(--border); background: #FFFFFF; border-radius: var(--radius-md); padding: 16px; cursor: pointer; text-align: center; transition: all 0.15s;">
-            <div style="font-size: 28px; margin-bottom: 6px;">📄</div>
-            <div style="font-weight: 700; color: var(--secondary); font-size: 14px;">PDF Document (.pdf)</div>
+          <div id="party-bom-format-pdf" style="border: 2px solid var(--border); background: #FFFFFF; border-radius: var(--radius-md); padding: 18px 16px; cursor: pointer; text-align: center; transition: all 0.15s;">
+            <div style="font-weight: 700; color: var(--secondary); font-size: 14.5px;">PDF Document (.pdf)</div>
             <div style="font-size: 11.5px; color: var(--neutral); margin-top: 4px;">Print-ready A4 document</div>
           </div>
         </div>
