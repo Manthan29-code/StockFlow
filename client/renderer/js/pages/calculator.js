@@ -5,8 +5,8 @@ const CalculatorPage = {
   async render(container) {
     container.innerHTML = `
       <div style="margin-bottom: 24px;">
-        <h1 style="font-size: 22px;">Production Material Requirement Calculator</h1>
-        <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Calculate expected raw material and component consumption against current live inventory stock</p>
+        <h1 style="font-size: 22px;">Dispatch & Calculator</h1>
+        <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Calculate raw material requirements, verify live stock, and record production dispatches</p>
       </div>
 
       <div class="card" style="margin-bottom: 24px; padding: 24px;">

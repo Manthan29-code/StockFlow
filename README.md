@@ -16,22 +16,27 @@ StockFlow preserves the familiar layout of traditional manufacturing dispatch re
 
 ## 2. Key Features
 
-- **Dual Ledger Tracking:**
-  - **Counted Components (Direct Mode):** Stock measured in units like `nos` or `pcs` where outgoing transactions directly deduct piece counts from the specific incoming challan receipt. Piece weight and total weight remain optional extras.
+- **Dual Ledger Tracking & Unified Report Display:**
+  - **Counted Components (Direct Mode):** Stock measured in units like `nos` or `pcs` where outgoing transactions directly deduct piece counts from the specific incoming challan receipt. Columns for piece weight and total weight are omitted for discrete parts to keep records lean and clear.
   - **Measured Raw Stock Issued by Count (Weight Mode):** Stock measured in units like `kg` or `meters` issued as counted pieces of specific dimensions (e.g., cutting 235 pieces of length 225.5 mm at 0.590 kg/piece). The system calculates exact piece-to-weight deductions (`235 × 0.590 = 138.65 kg`) and deducts the total weight from the incoming batch.
+  - **Unified Report View (`#ledger`):** Inward shipment metadata and outward dispatch rows share a single continuous table header (`IN DATE`, `INWARD NO`, `IN QUANTITY`, `OUT DATE`, `OUTWARD NO`, `TL`, `QTY`, `TOTAL WT`, `BALANCE`, `BY`, `ACTIONS`) with centered alignments, first-row outward pairing, and shipment boundary lines without repeated headers.
+  - **Dedicated Inward Records Screen (`#inward`):** A dedicated route for receiving, reviewing, editing, and deleting incoming shipments with live total received and balance summaries.
 - **Dynamic Balance Calculation (Never Stored):**
   - Storing static balance numbers causes synchronization anomalies and corrupt balances when rows are edited or audited. StockFlow **never stores balances** in the database. Balances are dynamically calculated using arbitrary-precision math (`decimal.js`).
   - Total material stock is always the sum of all its incoming entry balances.
-- **Production Bill of Materials (BOM) & Live Calculator:**
-  - Map finished products to customer parties.
-  - Define multi-line BOM specifications with custom material consumption and specification values.
-  - Run the **Production Calculator** to test planned production quantities (e.g., 500 units) against live available inventory, identifying exact shortfalls and readiness before issuing material.
+- **Production Dispatch & Live Calculator (FIFO Waterfall Deduction):**
+  - Map finished products to customer parties with globally unique product names across all accounts.
+  - Define multi-line BOM recipes with consumption rates and specification values (e.g. `TL: 300mm`).
+  - Run the **Dispatch & Calculator** to test planned production quantities (e.g., 500 units) against live stock.
+  - **1-Click Production Dispatch:** Deducts required raw materials from live stock using FIFO cascading across older open inward entries. If live stock is temporarily insufficient, advance issues into negative balances are permitted so shop floor production is never halted.
+  - **Negative Balance Auto-Settlement:** When new incoming stock arrives later, the system automatically absorbs and clears older deficits, bringing previous negative entries back to zero.
 - **Realtime Multi-User Desktop Experience:**
   - Powered by Electron, native WebSockets, and fallback polling.
   - When an operator on Machine A issues material, the ledger on Machine B updates within 1 second without clearing open forms.
   - **"Added By" User Badges:** Every incoming challan and outgoing dispatch row features the creator's avatar initials in their assigned color, with tooltips showing user name and exact timestamp.
-- **Excel Import, Export & Offline Recovery:**
-  - **Full Excel Export:** Exports materials and BOMs into `.xlsx` workbooks matching the original manufacturing dispatch report format.
+- **Excel & Print-Ready A4 Portrait PDF Export:**
+  - **Dual Export Modals:** Operators can export both Material Records and Customer BOM recipes directly to **Excel (`.xlsx`)** or **PDF (`.pdf`)**.
+  - **A4 Portrait PDF Formatting:** Generates clean, centered vector PDFs with compact, content-proportional column widths (`column name + 2 chars`), centered numerals, and crisp gridlines matching factory Excel reports.
   - **Offline Recovery Export:** If the server or database is completely offline, operators can export dispatch workbooks directly from local backup JSON snapshots.
   - **Import Wizard:** Parse legacy Excel stock sheets with column auto-detection, preview recalculated balances, detect over-issues, and commit all-or-nothing in a single transaction.
 - **Automated Local Backups & One-Click Restore:**
@@ -221,12 +226,12 @@ StockFlow/
 │   │   ├── wsClient.js             # WebSocket client with backoff reconnection
 │   │   ├── syncManager.js          # Synchronizes WebSockets with fallback polling
 │   │   ├── backup/                 # Atomic backup writer & scheduler
-│   │   ├── excel/                  # Workbook builders & parsers (ExcelJS)
+│   │   ├── excel/                  # Workbook builders & parsers (ExcelJS) & PDF generation
 │   │   └── ipc/                    # Whitelisted IPC handlers
 │   ├── renderer/                   # UI Renderer (HTML/CSS/JS, zero Node access)
 │   │   ├── index.html              # App shell
 │   │   ├── css/                    # Prismatic Pay theme (base.css, layout.css, components.css)
-│   │   └── js/                     # Router, formatters, components, and pages
+│   │   └── js/                     # Router, formatters, components, and pages (ledger, inward, calculator, etc.)
 │   └── test/                       # Client unit tests and backup fixtures
 │
 ├── plan/                           # Specifications & Architecture Decisions

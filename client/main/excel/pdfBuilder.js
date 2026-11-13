@@ -13,11 +13,23 @@ function formatNum(val) {
   return isNaN(num) ? '' : num.toLocaleString('en-IN', { maximumFractionDigits: 3 });
 }
 
+function getReportTitle(material, isWeightBased) {
+  const rawName = (material.name || '').trim();
+  const suffix = isWeightBased ? 'DISPATCH REPORT' : 'INVENTORY REPORT';
+  if (rawName.toUpperCase().endsWith('REPORT')) {
+    return rawName.toUpperCase();
+  }
+  return `${rawName.toUpperCase()} ${suffix}`;
+}
+
 function buildMaterialPdfHtml(material, entriesWithLedger = []) {
   const isWeightBased = material.deductBy === 'qty_x_piece_weight';
   const unitCode = material.unit ? material.unit.code : (isWeightBased ? 'kg' : 'nos');
   const hasSpec = Boolean(material.specLabel);
   const specLabel = material.specLabel || 'TL';
+  const specColWidth = Math.max((specLabel || '').length + 2, 8);
+
+  const reportTitle = getReportTitle(material, isWeightBased);
 
   let totalInQty = 0;
   let totalDeducted = 0;
@@ -30,99 +42,171 @@ function buildMaterialPdfHtml(material, entriesWithLedger = []) {
     totalInQty += entryQty;
     const outgoingRows = entry.outgoingRows || [];
 
-    // Inward entry header row
     const entryBalance = Number(entry.balance ?? entry.finalBalance ?? entryQty);
     currentBalance += entryBalance;
 
-    rowsHtml += `
-      <tr class="inward-row">
-        <td><strong>${convertDateToDDMMYYYY(entry.inDate)}</strong></td>
-        <td><strong>${entry.challanNo}</strong></td>
-        <td class="num font-bold">${formatNum(entry.quantity)}</td>
-        <td></td>
-        <td></td>
-        ${hasSpec ? '<td></td>' : ''}
-        <td></td>
-        <td></td>
-        <td class="num font-bold balance-cell">${formatNum(entry.balance ?? entry.finalBalance)}</td>
-      </tr>
-    `;
-
-    for (const outRow of outgoingRows) {
-      const outDeducted = Number(outRow.deducted || outRow.totalWeight || 0);
-      totalDeducted += outDeducted;
-
+    // Incoming shipment row
+    if (isWeightBased) {
       rowsHtml += `
-        <tr class="outward-row">
+        <tr class="inward-row">
+          <td class="center font-bold">${convertDateToDDMMYYYY(entry.inDate)}</td>
+          <td class="center font-bold mono">${entry.challanNo}</td>
+          <td class="num font-bold">${formatNum(entry.quantity)}</td>
           <td></td>
           <td></td>
+          ${hasSpec ? '<td></td>' : ''}
           <td></td>
-          <td>${convertDateToDDMMYYYY(outRow.outDate)}</td>
-          <td class="mono font-bold">${outRow.challanNo}</td>
-          ${hasSpec ? `<td>${outRow.specValue || '-'}</td>` : ''}
-          <td class="num">${formatNum(outRow.qty)}</td>
-          <td class="num font-bold">${formatNum(outRow.totalWeight || outRow.deducted)}</td>
-          <td class="num font-bold ${Number(outRow.runningBalance) < 0 ? 'negative' : ''}">${formatNum(outRow.runningBalance)}</td>
+          <td></td>
+          <td class="num font-bold">${formatNum(entry.quantity)}</td>
         </tr>
       `;
+
+      for (const outRow of outgoingRows) {
+        const outDeducted = Number(outRow.deducted || outRow.totalWeight || 0);
+        totalDeducted += outDeducted;
+
+        rowsHtml += `
+          <tr class="outward-row">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="center">${convertDateToDDMMYYYY(outRow.outDate)}</td>
+            <td class="center mono">${outRow.challanNo}</td>
+            ${hasSpec ? `<td class="center">${outRow.specValue || '-'}</td>` : ''}
+            <td class="num">${formatNum(outRow.qty)}</td>
+            <td class="num font-bold">${formatNum(outRow.totalWeight || outRow.deducted)}</td>
+            <td class="num font-bold ${Number(outRow.runningBalance) < 0 ? 'negative' : ''}">${formatNum(outRow.runningBalance)}</td>
+          </tr>
+        `;
+      }
+    } else {
+      // Direct count (nos) mode - matching Excel sheet (Image 2)
+      rowsHtml += `
+        <tr class="inward-row">
+          <td class="center font-bold">${convertDateToDDMMYYYY(entry.inDate)}</td>
+          <td class="center font-bold mono">${entry.challanNo}</td>
+          <td class="num font-bold">${formatNum(entry.quantity)}</td>
+          <td></td>
+          <td></td>
+          ${hasSpec ? '<td></td>' : ''}
+          <td></td>
+          <td class="num font-bold">${formatNum(entry.quantity)}</td>
+        </tr>
+      `;
+
+      for (const outRow of outgoingRows) {
+        const outDeducted = Number(outRow.deducted || outRow.qty || 0);
+        totalDeducted += outDeducted;
+
+        rowsHtml += `
+          <tr class="outward-row">
+            <td></td>
+            <td></td>
+            <td></td>
+            <td class="center">${convertDateToDDMMYYYY(outRow.outDate)}</td>
+            <td class="center mono">${outRow.challanNo}</td>
+            ${hasSpec ? `<td class="center">${outRow.specValue || '-'}</td>` : ''}
+            <td class="num">${formatNum(outRow.qty)}</td>
+            <td class="num font-bold ${Number(outRow.runningBalance) < 0 ? 'negative' : ''}">${formatNum(outRow.runningBalance)}</td>
+          </tr>
+        `;
+      }
     }
   }
+
+  // Header column definitions according to mode
+  const theadHtml = isWeightBased ? `
+    <thead>
+      <tr>
+        <th style="width: 12ch; min-width: 12ch; max-width: 12ch;">IN DATE</th>
+        <th style="width: 11ch; min-width: 11ch; max-width: 11ch;">INWARD NO</th>
+        <th style="width: 13ch; min-width: 13ch; max-width: 13ch;">IN QUANTITY</th>
+        <th style="width: 12ch; min-width: 12ch; max-width: 12ch;">OUT DATE</th>
+        <th style="width: 12ch; min-width: 12ch; max-width: 12ch;">OUTWARD NO</th>
+        ${hasSpec ? `<th style="width: ${specColWidth}ch; min-width: ${specColWidth}ch; max-width: ${specColWidth}ch;">${specLabel}</th>` : ''}
+        <th style="width: 8ch; min-width: 8ch; max-width: 8ch;">QTY</th>
+        <th style="width: 11ch; min-width: 11ch; max-width: 11ch;">TOTAL WT</th>
+        <th style="width: 11ch; min-width: 11ch; max-width: 11ch;">BALANCE</th>
+      </tr>
+    </thead>
+  ` : `
+    <thead>
+      <tr>
+        <th style="width: 12ch; min-width: 12ch; max-width: 12ch;">IN DATE</th>
+        <th style="width: 11ch; min-width: 11ch; max-width: 11ch;">INWARD NO</th>
+        <th style="width: 10ch; min-width: 10ch; max-width: 10ch;">IN QTY</th>
+        <th style="width: 12ch; min-width: 12ch; max-width: 12ch;">OUT DATE</th>
+        <th style="width: 12ch; min-width: 12ch; max-width: 12ch;">OUTWARD NO</th>
+        ${hasSpec ? `<th style="width: ${specColWidth}ch; min-width: ${specColWidth}ch; max-width: ${specColWidth}ch;">${specLabel}</th>` : ''}
+        <th style="width: 10ch; min-width: 10ch; max-width: 10ch;">OUT QTY</th>
+        <th style="width: 10ch; min-width: 10ch; max-width: 10ch;">BAL QTY</th>
+      </tr>
+    </thead>
+  `;
 
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${material.name} - Stock Records</title>
+  <title>${reportTitle}</title>
   <style>
     @page {
-      size: A4 landscape;
-      margin: 12mm 10mm;
+      size: A4 portrait;
+      margin: 15mm 10mm;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      color: #1a202c;
+      font-family: Calibri, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #000000;
       margin: 0;
       padding: 0;
       font-size: 11px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     .header {
       text-align: center;
-      margin-bottom: 14px;
-      border-bottom: 2px solid #2b6cb0;
-      padding-bottom: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 2px;
     }
     .header h1 {
-      margin: 0 0 4px 0;
-      font-size: 18px;
-      color: #2b6cb0;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #000000;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
     }
-    .header .meta {
-      font-size: 11px;
-      color: #718096;
+    .table-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
     }
     table {
-      width: 100%;
+      margin: 0 auto;
       border-collapse: collapse;
-      margin-top: 8px;
+      border: 1px solid #000000;
+      background-color: #ffffff;
     }
     th, td {
-      border: 1px solid #cbd5e0;
-      padding: 5px 8px;
+      border: 1px solid #000000;
+      padding: 4px 6px;
       vertical-align: middle;
+      font-size: 10.5px;
+      background-color: #ffffff;
+      color: #000000;
+      white-space: nowrap;
     }
     th {
-      background-color: #edf2f7;
       font-weight: 700;
-      text-align: left;
-      font-size: 10.5px;
-      color: #2d3748;
+      text-align: center;
       text-transform: uppercase;
     }
+    .center {
+      text-align: center;
+    }
     .num {
-      text-align: right;
+      text-align: center;
       font-variant-numeric: tabular-nums;
     }
     .mono {
@@ -131,67 +215,47 @@ function buildMaterialPdfHtml(material, entriesWithLedger = []) {
     .font-bold {
       font-weight: 700;
     }
-    .inward-row {
-      background-color: #f7fafc;
-      border-top: 2px solid #cbd5e0;
-    }
     .inward-row td {
-      color: #2b6cb0;
+      color: #000000;
     }
     .outward-row td {
-      color: #2d3748;
-    }
-    .balance-cell {
-      background-color: #edf2f7;
+      color: #000000;
     }
     .negative {
-      color: #e53e3e !important;
+      color: #c53030 !important;
       font-weight: bold;
     }
     .summary-box {
-      margin-top: 14px;
+      margin: 12px auto 0 auto;
       display: flex;
       justify-content: flex-end;
       gap: 20px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 8px 12px;
-      background: #f7fafc;
-      border: 1px solid #cbd5e0;
-      border-radius: 4px;
+      padding: 6px 12px;
+      background: #ffffff;
+      border: 1px solid #000000;
+      width: fit-content;
     }
     .summary-box span strong {
-      color: #2b6cb0;
-      font-size: 13px;
+      color: #000000;
+      font-size: 11.5px;
     }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>${material.name} ${isWeightBased ? 'DISPATCH REPORT' : 'INVENTORY REPORT'}</h1>
-    <div class="meta">
-      Unit of Measure: <strong>${unitCode}</strong> &bull; Generated: <strong>${new Date().toLocaleDateString('en-GB')}</strong>
-    </div>
+    <h1>${reportTitle}</h1>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 11%;">IN DATE</th>
-        <th style="width: 13%;">INWARD NO</th>
-        <th style="width: 11%;" class="num">IN QUANTITY</th>
-        <th style="width: 11%;">OUT DATE</th>
-        <th style="width: 13%;">OUTWARD NO</th>
-        ${hasSpec ? `<th style="width: 10%;">${specLabel}</th>` : ''}
-        <th style="width: 9%;" class="num">QTY</th>
-        <th style="width: 11%;" class="num">TOTAL WT</th>
-        <th style="width: 11%;" class="num">BALANCE</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHtml}
-    </tbody>
-  </table>
+  <div class="table-container">
+    <table>
+      ${theadHtml}
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+  </div>
 
   <div class="summary-box">
     <span>Total Inward: <strong>${formatNum(totalInQty)} ${unitCode}</strong></span>
@@ -203,7 +267,147 @@ function buildMaterialPdfHtml(material, entriesWithLedger = []) {
   `;
 }
 
+function buildPartyBomPdfHtml(party, products = [], materialsMap = new Map()) {
+  const partyTitle = party ? `${party.name.toUpperCase()} - BILL OF MATERIALS (BOM)` : 'BILL OF MATERIALS (BOM) REPORT';
+
+  let rowsHtml = '';
+  for (const prod of products) {
+    const partyName = party ? party.name : (prod.party ? prod.party.name : '');
+    const productName = prod.name;
+    const bomLines = prod.bomLines || [];
+
+    if (bomLines.length === 0) {
+      rowsHtml += `
+        <tr>
+          <td class="center font-bold">${partyName}</td>
+          <td class="center font-bold">${productName}</td>
+          <td class="center">-</td>
+          <td class="center">-</td>
+          <td class="center">-</td>
+        </tr>
+      `;
+      continue;
+    }
+
+    bomLines.forEach((line, idx) => {
+      const material = line.material || materialsMap.get(line.materialId) || {};
+      const unitCode = material.unit ? material.unit.code : (material.unitCode || '');
+
+      let bomName = material.name || '';
+      if (line.specValue) {
+        if (material.specLabel) {
+          bomName = `${bomName} ${material.specLabel}${line.specValue}`;
+        } else {
+          bomName = `${bomName} ${line.specValue}`;
+        }
+      }
+
+      const isFirst = idx === 0;
+      rowsHtml += `
+        <tr>
+          <td class="center ${isFirst ? 'font-bold' : ''}">${isFirst ? partyName : ''}</td>
+          <td class="center ${isFirst ? 'font-bold' : ''}">${isFirst ? productName : ''}</td>
+          <td class="center">${bomName}</td>
+          <td class="center font-bold">${formatNum(line.consumption)}</td>
+          <td class="center">${unitCode}</td>
+        </tr>
+      `;
+    });
+  }
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${partyTitle}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 15mm 10mm;
+    }
+    body {
+      font-family: Calibri, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: #000000;
+      margin: 0;
+      padding: 0;
+      font-size: 11px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 14px;
+      padding-bottom: 2px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: #000000;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .table-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+    table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      border: 1px solid #000000;
+      background-color: #ffffff;
+    }
+    th, td {
+      border: 1px solid #000000;
+      padding: 5px 8px;
+      vertical-align: middle;
+      font-size: 10.5px;
+      background-color: #ffffff;
+      color: #000000;
+      white-space: nowrap;
+    }
+    th {
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .center {
+      text-align: center;
+    }
+    .font-bold {
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${partyTitle}</h1>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 18ch; min-width: 18ch;">PARTY</th>
+          <th style="width: 28ch; min-width: 28ch;">PRODUCT NAME</th>
+          <th style="width: 32ch; min-width: 32ch;">BILL OF MATERIAL</th>
+          <th style="width: 14ch; min-width: 14ch;">CONSUMPTION</th>
+          <th style="width: 10ch; min-width: 10ch;">UNIT</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+  `;
+}
+
 module.exports = {
   buildMaterialPdfHtml,
+  buildPartyBomPdfHtml,
 };
-

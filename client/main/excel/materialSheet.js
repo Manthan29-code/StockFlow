@@ -16,6 +16,15 @@ function parseNumber(val) {
   return isNaN(num) ? null : num;
 }
 
+function getReportTitle(material, isWeightBased) {
+  const rawName = (material.name || '').trim().toUpperCase();
+  const suffix = isWeightBased ? 'DISPATCH REPORT' : 'INVENTORY REPORT';
+  if (rawName.endsWith('REPORT')) {
+    return rawName;
+  }
+  return `${rawName} ${suffix}`;
+}
+
 /**
  * Builds a workbook for a single material
  * @param {Object} material
@@ -45,7 +54,8 @@ function createMaterialWorkbook(material, entriesWithLedger = []) {
   }
 
   // 1. Title Row
-  const titleRow = sheet.addRow([material.name.toUpperCase() + (isWeightBased ? ' DISPATCH REPORT' : ' INVENTORY REPORT')]);
+  const reportTitle = getReportTitle(material, isWeightBased);
+  const titleRow = sheet.addRow([reportTitle]);
   titleRow.font = { bold: true, size: 14 };
   titleRow.alignment = { horizontal: 'center' };
 
@@ -162,14 +172,9 @@ function formatDataRow(row, columns) {
       right: { style: 'thin', color: { argb: 'FFD0D0D0' } },
     };
 
-    const col = columns[colNumber - 1];
+    cell.alignment = { horizontal: 'center' };
     if (typeof cell.value === 'number') {
       cell.numFmt = '#,##0.###';
-      cell.alignment = { horizontal: 'right' };
-    } else if (col && (col.key === 'inDate' || col.key === 'outDate')) {
-      cell.alignment = { horizontal: 'center' };
-    } else if (col && (col.key === 'chNoIn' || col.key === 'chNoOut')) {
-      cell.alignment = { horizontal: 'center' };
     }
   });
 }

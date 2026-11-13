@@ -11,7 +11,7 @@ const PartiesProductsPage = {
           <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Manage customer parties and finished manufactured products</p>
         </div>
         <div style="display: flex; gap: 10px;">
-          <button class="btn btn-secondary btn-sm" id="export-bom-btn">Export BOM (Excel)</button>
+          <button class="btn btn-secondary btn-sm" id="export-bom-btn">Export</button>
           <button class="btn btn-secondary btn-sm" id="add-party-btn">+ Add Party</button>
           <button class="btn btn-primary btn-sm" id="add-product-btn">+ Add Product</button>
         </div>
@@ -40,7 +40,7 @@ const PartiesProductsPage = {
               <span id="product-count-badge" class="chip chip-neutral">0 Products</span>
             </div>
             <button class="btn btn-secondary btn-sm" id="panel-export-bom-btn" style="padding: 3px 10px; font-size: 12px;">
-              Export BOM (.xlsx)
+              Export
             </button>
           </div>
           <div id="products-table-container" class="no-scrollbar" style="flex: 1; overflow-y: auto;">
@@ -77,14 +77,71 @@ const PartiesProductsPage = {
     await this.loadData();
   },
 
-  async exportCurrentBom() {
-    try {
-      const res = await window.api.exportPartyBom(this.selectedPartyId);
-      if (res && !res.canceled) {
-        Toast.show(`BOM exported successfully to Excel`, 'success');
-      }
-    } catch (err) {
-      Toast.show(`Export failed: ${err.message}`, 'error');
+  exportCurrentBom() {
+    const selectedParty = this.parties.find((p) => p.id === this.selectedPartyId);
+    const partyLabel = selectedParty ? selectedParty.name : 'All Parties';
+
+    let chosenFormat = 'excel';
+
+    Modal.open({
+      title: 'Export Bill of Materials',
+      bodyHtml: `
+        <div style="font-size: 13.5px; color: var(--secondary); margin-bottom: 16px;">
+          Choose the export format for <strong>${partyLabel}</strong>:
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px;">
+          <div id="party-bom-format-excel" style="border: 2px solid var(--primary); background: #F0F4FF; border-radius: var(--radius-md); padding: 16px; cursor: pointer; text-align: center; transition: all 0.15s;">
+            <div style="font-size: 28px; margin-bottom: 6px;">📊</div>
+            <div style="font-weight: 700; color: var(--secondary); font-size: 14px;">Excel (.xlsx)</div>
+            <div style="font-size: 11.5px; color: var(--neutral); margin-top: 4px;">Standard factory workbook</div>
+          </div>
+          <div id="party-bom-format-pdf" style="border: 2px solid var(--border); background: #FFFFFF; border-radius: var(--radius-md); padding: 16px; cursor: pointer; text-align: center; transition: all 0.15s;">
+            <div style="font-size: 28px; margin-bottom: 6px;">📄</div>
+            <div style="font-weight: 700; color: var(--secondary); font-size: 14px;">PDF Document (.pdf)</div>
+            <div style="font-size: 11.5px; color: var(--neutral); margin-top: 4px;">Print-ready A4 document</div>
+          </div>
+        </div>
+      `,
+      confirmText: 'Export Now',
+      onConfirm: async () => {
+        try {
+          if (chosenFormat === 'pdf') {
+            const res = await window.api.exportPartyBomPdf(this.selectedPartyId);
+            if (res && !res.canceled) {
+              Toast.show('BOM exported successfully to PDF', 'success');
+              return true;
+            }
+          } else {
+            const res = await window.api.exportPartyBom(this.selectedPartyId);
+            if (res && !res.canceled) {
+              Toast.show('BOM exported successfully to Excel', 'success');
+              return true;
+            }
+          }
+        } catch (err) {
+          Toast.show(`Export failed: ${err.message}`, 'error');
+          return false;
+        }
+      },
+    });
+
+    const cardExcel = document.getElementById('party-bom-format-excel');
+    const cardPdf = document.getElementById('party-bom-format-pdf');
+    if (cardExcel && cardPdf) {
+      cardExcel.onclick = () => {
+        chosenFormat = 'excel';
+        cardExcel.style.borderColor = 'var(--primary)';
+        cardExcel.style.background = '#F0F4FF';
+        cardPdf.style.borderColor = 'var(--border)';
+        cardPdf.style.background = '#FFFFFF';
+      };
+      cardPdf.onclick = () => {
+        chosenFormat = 'pdf';
+        cardPdf.style.borderColor = 'var(--primary)';
+        cardPdf.style.background = '#F0F4FF';
+        cardExcel.style.borderColor = 'var(--border)';
+        cardExcel.style.background = '#FFFFFF';
+      };
     }
   },
 

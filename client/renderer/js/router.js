@@ -2,8 +2,9 @@ const Router = {
   routes: {
     login: { page: LoginPage, title: 'Login', auth: false },
     dashboard: { page: DashboardPage, title: 'Dashboard', auth: true },
-    ledger: { page: LedgerPage, title: 'Records', auth: true },
-    calculator: { page: CalculatorPage, title: 'BOM Calculator', auth: true },
+    ledger: { page: LedgerPage, title: 'Report', auth: true },
+    inward: { page: InwardPage, title: 'Inward ', auth: true },
+    calculator: { page: CalculatorPage, title: 'Dispatch & Calculator', auth: true },
     materials: { page: MaterialsPage, title: 'Materials & Units', auth: true, admin: true },
     'parties-products': { page: PartiesProductsPage, title: 'Parties & Products', auth: true, admin: true },
     'bom-editor': { page: BomEditorPage, title: 'BOM Editor', auth: true, admin: true },
