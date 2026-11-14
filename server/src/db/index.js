@@ -1,18 +1,23 @@
 const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
 const config = require('../config');
 
-const adapter = new PrismaPg({
-  connectionString: config.DATABASE_URL,
-  max: config.DB_POOL_MAX || 5,
-});
+let prisma;
 
-const prisma = new PrismaClient({
-  adapter,
-  log: config.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-});
+// If a Cloudflare D1 database binding is passed (e.g. in Cloudflare Worker environment)
+if (globalThis.__D1_DB__) {
+  const { PrismaD1 } = require('@prisma/adapter-d1');
+  const adapter = new PrismaD1(globalThis.__D1_DB__);
+  prisma = new PrismaClient({
+    adapter,
+    log: config.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  });
+} else {
+  // Standard SQLite connection for Node.js Express server
+  prisma = new PrismaClient({
+    log: config.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+  });
+}
 
 module.exports = {
   prisma,
 };
-

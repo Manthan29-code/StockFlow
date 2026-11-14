@@ -1,0 +1,9 @@
+name = "stockflow-server"
+compatibility_date = "2026-11-14"
+compatibility_flags = [ "nodejs_compat" ]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "stockflow-db"
+database_id = "<YOUR_D1_DATABASE_ID>"
+

@@ -1,9 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -59,9 +61,9 @@ model Material {
 model IncomingEntry {
   id           String                @id @default(uuid())
   materialId   String                @map("material_id")
-  inDate       DateTime              @db.Date @map("in_date")
+  inDate       DateTime              @map("in_date")
   challanNo    String                @map("challan_no")
-  quantity     Decimal               @db.Decimal(14, 3)
+  quantity     Decimal
   supplier     String?
   notes        String?
   lockSeq      Int                   @default(0) @map("lock_seq")
@@ -73,21 +75,20 @@ model IncomingEntry {
   material     Material              @relation(fields: [materialId], references: [id])
   outgoingRows OutgoingTransaction[]
 
-  @@index([materialId, inDate])
   @@map("incoming_entries")
 }
 
 model OutgoingTransaction {
   id              String        @id @default(uuid())
   incomingEntryId String        @map("incoming_entry_id")
-  outDate         DateTime      @db.Date @map("out_date")
+  outDate         DateTime      @map("out_date")
   challanNo       String        @map("challan_no")
   rowNo           Int           @map("row_no")
-  qty             Decimal       @db.Decimal(14, 3)
-  pieceWeight     Decimal?      @db.Decimal(12, 4) @map("piece_weight")
+  qty             Decimal
+  pieceWeight     Decimal?      @map("piece_weight")
   specValue       String?       @map("spec_value")
-  totalWeight     Decimal?      @db.Decimal(14, 3) @map("total_weight")
-  deducted        Decimal       @db.Decimal(14, 3)
+  totalWeight     Decimal?      @map("total_weight")
+  deducted        Decimal
   createdAt       DateTime      @default(now()) @map("created_at")
   createdBy       String?       @map("created_by")
   updatedAt       DateTime      @updatedAt @map("updated_at")
@@ -95,7 +96,6 @@ model OutgoingTransaction {
   version         Int           @default(1)
   incomingEntry   IncomingEntry @relation(fields: [incomingEntryId], references: [id], onDelete: Cascade)
 
-  @@index([incomingEntryId, rowNo])
   @@map("outgoing_transactions")
 }
 
@@ -135,7 +135,7 @@ model BomLine {
   id          String   @id @default(uuid())
   productId   String   @map("product_id")
   materialId  String   @map("material_id")
-  consumption Decimal  @db.Decimal(14, 3)
+  consumption Decimal
   specValue   String?  @map("spec_value")
   createdAt   DateTime @default(now()) @map("created_at")
   createdBy   String?  @map("created_by")
@@ -145,8 +145,6 @@ model BomLine {
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   material    Material @relation(fields: [materialId], references: [id])
 
-  @@index([productId])
-  @@index([materialId])
   @@map("bom_lines")
 }
 
@@ -160,8 +158,6 @@ model AuditLog {
   after    Json?
   at       DateTime @default(now())
 
-  @@index([at(sort: Desc)])
-  @@index([entity, at(sort: Desc)])
   @@map("audit_log")
 }
 
@@ -171,4 +167,3 @@ model Meta {
 
   @@map("meta")
 }
-
