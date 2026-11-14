@@ -4,6 +4,5 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "stockflow-db"
-database_id = "<YOUR_D1_DATABASE_ID>"
-
+database_name = "stock-flow"
+database_id = "000bb935-f66a-41bb-83ec-ad5994748443"
