@@ -275,13 +275,20 @@ const DispatchPage = {
           <td style="text-align: center;">${Format.date(d.outwardDate)}</td>
           <td style="text-align: center;" class="mono font-bold">${d.outwardNo}</td>
           <td style="text-align: center; white-space: nowrap;">
-            <button class="btn btn-secondary btn-sm edit-dispatch-btn" data-id="${d.id}" style="padding: 3px 12px; font-size: 12px;">Edit</button>
+            <div style="display: inline-flex; gap: 6px; justify-content: center;">
+              <button class="btn btn-secondary btn-sm edit-dispatch-btn" data-id="${d.id}" style="padding: 3px 10px; font-size: 12px;">Edit</button>
+              <button class="btn btn-secondary btn-sm delete-dispatch-btn" data-id="${d.id}" style="padding: 3px 10px; font-size: 12px; color: var(--error);">Delete</button>
+            </div>
           </td>
         </tr>
       `).join('');
 
       tbody.querySelectorAll('.edit-dispatch-btn').forEach((btn) => {
         btn.onclick = () => this.openEditDispatchModal(btn.getAttribute('data-id'));
+      });
+
+      tbody.querySelectorAll('.delete-dispatch-btn').forEach((btn) => {
+        btn.onclick = () => this.confirmDeleteDispatch(btn.getAttribute('data-id'));
       });
     } catch (err) {
       tbody.innerHTML = `
@@ -361,6 +368,26 @@ const DispatchPage = {
         } catch (err) {
           Toast.show(err.message || 'Failed to update dispatch', 'error');
           return false;
+        }
+      },
+    });
+  },
+
+  confirmDeleteDispatch(dispatchId) {
+    const dispatch = this.dispatches.find((d) => d.id === dispatchId);
+    if (!dispatch) return;
+
+    Modal.confirm({
+      title: 'Delete Production Dispatch',
+      message: `Are you sure you want to delete dispatch "${dispatch.outwardNo}" (${dispatch.plannedQuantity} units of ${dispatch.productName})? All deducted raw materials will be automatically restored back to stock.`,
+      confirmText: 'Delete Dispatch',
+      onConfirm: async () => {
+        try {
+          await Api.delete(`/api/products/dispatches/${dispatchId}`);
+          Toast.show('Production dispatch deleted. All deducted materials restored to stock.', 'success');
+          await this.loadDispatches();
+        } catch (err) {
+          Toast.show(err.message || 'Failed to delete dispatch', 'error');
         }
       },
     });

@@ -730,6 +730,67 @@ async function updateProductionDispatch(actorId, dispatchId, { quantity, outward
   };
 }
 
+async function deleteProductionDispatch(actorId, dispatchId) {
+  const dispatchAudit = await prisma.auditLog.findUnique({
+    where: { id: dispatchId },
+  });
+  if (!dispatchAudit || dispatchAudit.entity !== 'production_dispatch') {
+    throw NotFoundError('Production dispatch record not found');
+  }
+
+  const current = dispatchAudit.after || {};
+  const productId = current.productId;
+
+  const result = await withTransaction(async (tx) => {
+    let existingRowIds = Array.isArray(current.outgoingRowIds) ? current.outgoingRowIds : [];
+    let rows = [];
+    if (existingRowIds.length > 0) {
+      rows = await tx.outgoingTransaction.findMany({
+        where: { id: { in: existingRowIds } },
+      });
+    }
+    if (rows.length === 0 && current.outwardNo) {
+      rows = await tx.outgoingTransaction.findMany({
+        where: {
+          challanNo: current.outwardNo,
+          outDate: new Date(current.outDate),
+        },
+      });
+    }
+
+    if (rows.length > 0) {
+      await tx.outgoingTransaction.deleteMany({
+        where: { id: { in: rows.map((r) => r.id) } },
+      });
+    }
+
+    await tx.auditLog.delete({
+      where: { id: dispatchId },
+    });
+
+    await auditRepo.createAuditEntry({
+      userId: actorId,
+      action: 'DELETE',
+      entity: 'production_dispatch',
+      entityId: productId,
+      before: current,
+    }, tx);
+
+    const rev = await metaRepo.bumpRevision(tx);
+    return { revision: rev };
+  });
+
+  broadcast({
+    type: 'changed',
+    revision: result.revision,
+    entity: 'production',
+    productId,
+    by: actorId,
+  });
+
+  return { success: true, message: 'Production dispatch deleted and stock restored' };
+}
+
 module.exports = {
   addBomLine,
   editBomLine,
@@ -738,5 +799,6 @@ module.exports = {
   recordProductionDispatch,
   listProductionDispatches,
   updateProductionDispatch,
+  deleteProductionDispatch,
 };
 

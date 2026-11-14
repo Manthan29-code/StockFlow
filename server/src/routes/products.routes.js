@@ -49,6 +49,16 @@ router.patch('/products/dispatches/:id', auth, async (req, res, next) => {
   }
 });
 
+// DELETE /products/dispatches/:id (S) - Delete production dispatch
+router.delete('/products/dispatches/:id', auth, async (req, res, next) => {
+  try {
+    const result = await bomService.deleteProductionDispatch(req.user.id, req.params.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // 20. GET /products/:id (S)
 router.get('/products/:id', auth, async (req, res, next) => {
   try {
