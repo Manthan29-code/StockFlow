@@ -116,4 +116,19 @@ Thumbs.db
 *.sln
 *.sw?
 
+# SQLite database files & journals
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+dev.db
+test.db
+
+# Cloudflare Wrangler state & D1 storage
+.wrangler/
+
+# Inventory backup files (contain production/business data)
+inventory-*.json
+inventory-latest.json
+
 plan/**
