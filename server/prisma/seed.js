@@ -178,6 +178,9 @@ async function main() {
 
   // Also seed local SQLite if Prisma is available
   try {
+    const { ensureDatabaseSchema } = require('../src/services/schema.service');
+    await ensureDatabaseSchema();
+
     const { prisma } = require('../src/db');
     if (!backupFile) {
       const adminUsername = (config.SEED_ADMIN_USERNAME || 'admin').toLowerCase();

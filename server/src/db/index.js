@@ -12,14 +12,12 @@ if (globalThis.__D1_DB__) {
     log: config.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 } else {
-  // Node.js environment (Express Server) using the official SQLite driver adapter
-  const { PrismaLibSQL } = require('@prisma/adapter-libsql');
-  const { createClient } = require('@libsql/client');
+  // Node.js Express server using Prisma 7 libSQL adapter
+  const { PrismaLibSql } = require('@prisma/adapter-libsql');
 
-  const libsql = createClient({
+  const adapter = new PrismaLibSql({
     url: config.DATABASE_URL || 'file:./dev.db',
   });
-  const adapter = new PrismaLibSQL(libsql);
 
   prisma = new PrismaClient({
     adapter,

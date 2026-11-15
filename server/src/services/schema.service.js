@@ -1,14 +1,40 @@
+const fs = require('fs');
+const path = require('path');
 const { prisma } = require('../db');
 const logger = require('../utils/logger');
 
 /**
  * Checks if the primary tables exist in the database.
- * Compatible with SQLite and Cloudflare D1.
+ * If tables do not exist (brand new SQLite database), executes 0001_init.sql
+ * to automatically create all tables, relations, and unique constraints.
  */
 async function ensureDatabaseSchema() {
   try {
-    // Check if the primary table 'users' exists and can be queried
-    await prisma.user.findFirst({ select: { id: true } });
+    // Check if table 'users' exists using sqlite_master (does not throw an error if missing)
+    const tables = await prisma.$queryRawUnsafe(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='users';"
+    );
+
+    const tableExists = Array.isArray(tables) && tables.length > 0;
+
+    if (!tableExists) {
+      logger.info('[Schema] Fresh database detected. Automatically applying migration DDL...');
+      const sqlFile = path.resolve(__dirname, '../../migrations/0001_init.sql');
+      if (fs.existsSync(sqlFile)) {
+        const sqlContent = fs.readFileSync(sqlFile, 'utf8');
+        const statements = sqlContent
+          .split(';')
+          .map((s) => s.replace(/--.*$/gm, '').trim())
+          .filter((s) => s.length > 0);
+
+        for (const stmt of statements) {
+          await prisma.$executeRawUnsafe(stmt);
+        }
+        logger.info(`[Schema] All ${statements.length} tables and constraints auto-created successfully.`);
+        return { initialized: true, created: true };
+      }
+    }
+
     logger.info('[Schema] Database tables verified successfully.');
     return { initialized: true, created: false };
   } catch (err) {
