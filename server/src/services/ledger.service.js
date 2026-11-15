@@ -7,7 +7,7 @@ const {
   ENTRY_STATUS,
   toDecimal,
   Decimal,
-} = require('@stockflow/shared');
+} = require('../shared');
 const {
   mapMaterial,
   mapIncomingEntry,

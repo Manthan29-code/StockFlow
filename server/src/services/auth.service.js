@@ -15,7 +15,7 @@ const {
   NotFoundError,
 } = require('../utils/errors');
 const { mapUser } = require('../db/mappers');
-const { ROLES } = require('@stockflow/shared');
+const { ROLES } = require('../shared');
 
 async function login(username, password) {
   const normUsername = username.trim().toLowerCase();

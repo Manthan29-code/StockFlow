@@ -9,7 +9,7 @@ const auditRepo = require('../repositories/audit.repo');
 const metaRepo = require('../repositories/meta.repo');
 const { broadcast } = require('../realtime/broadcaster');
 const { NotFoundError, ValidationError, InsufficientBalanceError } = require('../utils/errors');
-const { calculateDeducted, validateRunningBalances } = require('@stockflow/shared');
+const { calculateDeducted, validateRunningBalances } = require('../shared');
 
 async function commitMaterialImport(actorId, materialId, entries) {
   const material = await materialsRepo.findById(materialId);

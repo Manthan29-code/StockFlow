@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const { DEDUCT_BY } = require('@stockflow/shared');
+const { DEDUCT_BY } = require('../shared');
 
 const createMaterialSchema = z.object({
   name: z.string().min(1, 'Material name is required'),

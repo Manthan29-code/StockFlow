@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { prisma } = require('../../src/db');
 const config = require('../../src/config');
-const { ROLES } = require('@stockflow/shared');
+const { ROLES } = require('../../src/shared');
 
 let adminUser = null;
 let staffUser = null;

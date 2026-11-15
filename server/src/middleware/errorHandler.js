@@ -1,6 +1,6 @@
 const { AppError } = require('../utils/errors');
 const logger = require('../utils/logger');
-const { ERROR_CODES } = require('@stockflow/shared');
+const { ERROR_CODES } = require('../shared');
 
 function errorHandler(err, req, res, next) {
   if (err instanceof AppError) {

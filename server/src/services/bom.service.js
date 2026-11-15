@@ -18,7 +18,7 @@ const {
   calculateMaterialStock,
   calculateBomRequirements,
   toDecimal,
-} = require('@stockflow/shared');
+} = require('../shared');
 const { mapBomLine, formatDateToYYYYMMDD } = require('../db/mappers');
 
 async function addBomLine(actorId, productId, data) {

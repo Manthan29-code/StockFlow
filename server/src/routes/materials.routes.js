@@ -13,7 +13,7 @@ const { validate } = require('../middleware/validate');
 const { createMaterialSchema, updateMaterialSchema } = require('../schemas/materials.schema');
 const { DuplicateError, NotFoundError, ValidationError, VersionConflictError } = require('../utils/errors');
 const { mapMaterial, formatDateToYYYYMMDD } = require('../db/mappers');
-const { calculateEntryLedger, calculateMaterialStock } = require('@stockflow/shared');
+const { calculateEntryLedger, calculateMaterialStock } = require('../shared');
 
 // 11. GET /materials (S)
 router.get('/materials', auth, async (req, res, next) => {

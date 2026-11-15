@@ -1,4 +1,4 @@
-const { ROLES } = require('@stockflow/shared');
+const { ROLES } = require('../shared');
 const { ForbiddenError } = require('../utils/errors');
 
 function requireAdmin(req, res, next) {

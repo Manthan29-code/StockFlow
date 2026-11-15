@@ -1,5 +1,5 @@
 const { z } = require('zod');
-const { ROLES } = require('@stockflow/shared');
+const { ROLES } = require('../shared');
 
 const createUserSchema = z.object({
   username: z.string().min(2, 'Username must be at least 2 characters').toLowerCase(),

@@ -1,4 +1,4 @@
-const { ERROR_CODES } = require('@stockflow/shared');
+const { ERROR_CODES } = require('../shared');
 
 class AppError extends Error {
   constructor(code, message, statusCode = 400, details = {}) {

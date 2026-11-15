@@ -17,7 +17,7 @@ const {
   calculateEntryLedger,
   validateRunningBalances,
   toDecimal,
-} = require('@stockflow/shared');
+} = require('../shared');
 const {
   mapIncomingEntry,
   mapOutgoingTransaction,
