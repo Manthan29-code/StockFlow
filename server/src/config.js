@@ -6,7 +6,7 @@ dotenv.config();
 const configSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  DATABASE_URL: z.string().default('file:./dev.db'),
   DIRECT_URL: z.string().optional(),
   TEST_DATABASE_URL: z.string().optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().optional(),

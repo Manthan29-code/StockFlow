@@ -1,4 +1,5 @@
 name = "stockflow-server"
+main = "src/worker.js"
 compatibility_date = "2026-11-14"
 compatibility_flags = [ "nodejs_compat" ]
 
@@ -6,3 +7,10 @@ compatibility_flags = [ "nodejs_compat" ]
 binding = "DB"
 database_name = "stock-flow"
 database_id = "000bb935-f66a-41bb-83ec-ad5994748443"
+
+[vars]
+NODE_ENV = "production"
+JWT_SECRET = "supersecretstockflowjwtkeychangeinprod1234567890"
+JWT_EXPIRES_IN = "30d"
+BCRYPT_ROUNDS = "10"
+LOG_LEVEL = "info"
