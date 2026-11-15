@@ -13,7 +13,7 @@
     "seed": "node prisma/seed.js",
     "studio": "prisma studio",
     "test": "vitest run",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler d1 migrations apply stock-flow --remote && wrangler deploy",
     "dev:worker": "wrangler dev"
   },
   "dependencies": {
