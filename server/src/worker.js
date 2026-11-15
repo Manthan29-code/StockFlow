@@ -8,7 +8,7 @@ const server = http.createServer(app);
 server.listen(3000);
 const expressHandler = httpServerHandler({ port: 3000 });
 
-module.exports = {
+export default {
   async fetch(request, env, ctx) {
     // 1. Bind the Cloudflare D1 database instance to Prisma
     if (env.DB) {

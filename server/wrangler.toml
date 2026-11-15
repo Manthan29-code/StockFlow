@@ -4,6 +4,9 @@ main = "src/worker.js"
 compatibility_date = "2026-11-14"
 compatibility_flags = [ "nodejs_compat" ]
 
+[alias]
+"decimal.js" = "./node_modules/decimal.js"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "stock-flow"
