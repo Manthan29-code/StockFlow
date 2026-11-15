@@ -50,6 +50,17 @@ async function findByPartyAndName(partyId, name, client = prisma) {
   });
 }
 
+async function findByName(name, client = prisma) {
+  return await client.product.findFirst({
+    where: {
+      name: { equals: name.trim(), mode: 'insensitive' },
+    },
+    include: {
+      party: true,
+    },
+  });
+}
+
 async function createProduct(data, client = prisma) {
   return await client.product.create({
     data: {
@@ -101,6 +112,7 @@ module.exports = {
   listProducts,
   findById,
   findByPartyAndName,
+  findByName,
   createProduct,
   updateProduct,
   deleteProduct,

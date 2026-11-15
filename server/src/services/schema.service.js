@@ -1,73 +1,48 @@
-const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
-const config = require('../config');
+const { prisma } = require('../db');
 const logger = require('../utils/logger');
 
 /**
  * Checks if the primary tables exist in the database.
- * If tables do not exist (brand new database), executes the migration SQL files
- * to automatically create all tables, foreign keys, and performance indexes.
+ * If tables do not exist (brand new SQLite database), executes 0001_init.sql
+ * to automatically create all tables, relations, and unique constraints.
  */
 async function ensureDatabaseSchema() {
-  const connectionString = config.DATABASE_URL;
-  if (!connectionString) {
-    logger.warn('[Schema] DATABASE_URL is not set.');
-    return { initialized: false, error: 'DATABASE_URL is not configured' };
-  }
-
-  const client = new Client({
-    connectionString,
-    ssl: connectionString.includes('sslmode=require') || connectionString.includes('neon.tech')
-      ? { rejectUnauthorized: false }
-      : undefined,
-  });
-
   try {
-    await client.connect();
+    // Check if table 'users' exists using sqlite_master (does not throw an error if missing)
+    const tables = await prisma.$queryRawUnsafe(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='users';"
+    );
 
-    // Check if the primary table 'users' exists
-    const checkRes = await client.query(`
-      SELECT to_regclass('public.users') AS exists;
-    `);
-
-    const tableExists = checkRes.rows[0] && checkRes.rows[0].exists;
+    const tableExists = Array.isArray(tables) && tables.length > 0;
 
     if (!tableExists) {
       logger.info('[Schema] Fresh database detected. Automatically applying migration DDL...');
+      const sqlFile = path.resolve(__dirname, '../../migrations/0001_init.sql');
+      if (fs.existsSync(sqlFile)) {
+        const sqlContent = fs.readFileSync(sqlFile, 'utf8');
+        const statements = sqlContent
+          .split(';')
+          .map((s) => s.replace(/--.*$/gm, '').trim())
+          .filter((s) => s.length > 0);
 
-      const migrationsDir = path.resolve(__dirname, '../../prisma/migrations');
-      if (fs.existsSync(migrationsDir)) {
-        const dirs = fs.readdirSync(migrationsDir)
-          .filter((d) => fs.statSync(path.join(migrationsDir, d)).isDirectory())
-          .sort();
-
-        for (const dir of dirs) {
-          const sqlFile = path.join(migrationsDir, dir, 'migration.sql');
-          if (fs.existsSync(sqlFile)) {
-            logger.info(`[Schema] Applying DDL migration: ${dir}`);
-            const sql = fs.readFileSync(sqlFile, 'utf8');
-            await client.query(sql);
-          }
+        for (const stmt of statements) {
+          await prisma.$executeRawUnsafe(stmt);
         }
+        logger.info(`[Schema] All ${statements.length} tables and constraints auto-created successfully.`);
+        return { initialized: true, created: true };
       }
-
-      logger.info('[Schema] All tables, foreign keys, and indexes created successfully.');
-      return { initialized: true, created: true };
     }
 
+    logger.info('[Schema] Database tables verified successfully.');
     return { initialized: true, created: false };
   } catch (err) {
-    logger.error('[Schema] Failed to verify or initialize database schema:', err);
-    throw err;
-  } finally {
-    try {
-      await client.end();
-    } catch (_) {}
+    logger.warn('[Schema] Table check returned: ' + err.message);
+    return { initialized: false, error: err.message };
   }
 }
 
 module.exports = {
   ensureDatabaseSchema,
 };
-

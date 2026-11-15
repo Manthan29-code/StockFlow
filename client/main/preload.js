@@ -30,7 +30,9 @@ contextBridge.exposeInMainWorld('api', {
 
   // Excel Part 3 functions
   exportMaterial: (materialId) => ipcRenderer.invoke('excel:exportMaterial', { materialId }),
+  exportMaterialPdf: (materialId) => ipcRenderer.invoke('excel:exportMaterialPdf', { materialId }),
   exportPartyBom: (partyId) => ipcRenderer.invoke('excel:exportPartyBom', { partyId }),
+  exportPartyBomPdf: (partyId) => ipcRenderer.invoke('excel:exportPartyBomPdf', { partyId }),
   exportAll: () => ipcRenderer.invoke('excel:exportAll'),
   exportFromBackup: () => ipcRenderer.invoke('excel:exportFromBackup'),
   parseMaterialSheet: (material, customColumnMap) => ipcRenderer.invoke('excel:parseMaterialSheet', { material, customColumnMap }),

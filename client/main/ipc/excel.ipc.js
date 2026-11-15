@@ -1,10 +1,11 @@
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, BrowserWindow } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { getConfig } = require('../config');
 const { request } = require('../httpClient');
 const { buildAllWorkbooks } = require('../excel/workbookBuilder');
 const { createMaterialWorkbook } = require('../excel/materialSheet');
+const { buildMaterialPdfHtml, buildPartyBomPdfHtml } = require('../excel/pdfBuilder');
 const { createBomWorkbook } = require('../excel/bomSheet');
 const { getMaterialFileName } = require('../excel/fileNames');
 const { parseMaterialWorkbook } = require('../excel/importParser');
@@ -18,7 +19,7 @@ function registerExcelIpc() {
     const defaultName = getMaterialFileName(ledger.material.name);
 
     const { canceled, filePath } = await dialog.showSaveDialog({
-      title: 'Export Material Ledger',
+      title: 'Export Material Records (Excel)',
       defaultPath: defaultName,
       filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
     });
@@ -26,6 +27,40 @@ function registerExcelIpc() {
     if (canceled || !filePath) return { canceled: true };
 
     await workbook.xlsx.writeFile(filePath);
+    return { canceled: false, filePath };
+  });
+
+  // Export single material as PDF
+  ipcMain.handle('excel:exportMaterialPdf', async (event, { materialId }) => {
+    const ledger = await request({ method: 'GET', path: `/api/materials/${materialId}/ledger` });
+    const htmlContent = buildMaterialPdfHtml(ledger.material, ledger.entries);
+    const defaultName = getMaterialFileName(ledger.material.name).replace(/\.xlsx$/i, '.pdf');
+
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: 'Export Material Records (PDF)',
+      defaultPath: defaultName,
+      filters: [{ name: 'PDF Documents', extensions: ['pdf'] }],
+    });
+
+    if (canceled || !filePath) return { canceled: true };
+
+    const win = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        offscreen: true,
+      },
+    });
+
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+    const pdfBuffer = await win.webContents.printToPDF({
+      pageSize: 'A4',
+      landscape: false,
+      printBackground: true,
+    });
+
+    await fs.promises.writeFile(filePath, pdfBuffer);
+    win.destroy();
+
     return { canceled: false, filePath };
   });
 
@@ -108,6 +143,74 @@ function registerExcelIpc() {
     if (canceled || !filePath) return { canceled: true };
 
     await workbook.xlsx.writeFile(filePath);
+    return { canceled: false, filePath };
+  });
+
+  // Export BOM for a specific party or all parties as PDF
+  ipcMain.handle('excel:exportPartyBomPdf', async (event, { partyId } = {}) => {
+    const dataset = await request({ method: 'GET', path: '/api/dataset' });
+    const data = dataset.data || dataset;
+    const parties = (data.parties || []).filter((p) => !partyId || p.id === partyId);
+    const selectedParty = (data.parties || []).find((p) => p.id === partyId);
+    const products = (data.products || []).filter((p) => !partyId || p.partyId === partyId);
+    const materials = data.materials || [];
+    const bomLines = data.bom_lines || [];
+    const units = data.units || [];
+
+    const unitsMap = new Map(units.map((u) => [u.id, u]));
+    const materialsMap = new Map(
+      materials.map((m) => [
+        m.id,
+        {
+          ...m,
+          unit: m.unit || unitsMap.get(m.unitId) || null,
+        },
+      ])
+    );
+
+    const linesByProductId = new Map();
+    for (const line of bomLines) {
+      const pId = line.productId || line.product_id;
+      if (!linesByProductId.has(pId)) {
+        linesByProductId.set(pId, []);
+      }
+      linesByProductId.get(pId).push(line);
+    }
+
+    const enrichedProducts = products.map((prod) => ({
+      ...prod,
+      bomLines: linesByProductId.get(prod.id) || prod.bomLines || [],
+    }));
+
+    const htmlContent = buildPartyBomPdfHtml(selectedParty, enrichedProducts, materialsMap);
+    const safePartyName = selectedParty ? selectedParty.name.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() : 'All';
+    const defaultName = `${safePartyName}_BOM.pdf`;
+
+    const { canceled, filePath } = await dialog.showSaveDialog({
+      title: selectedParty ? `Export BOM for ${selectedParty.name} (PDF)` : 'Export BOM (PDF)',
+      defaultPath: defaultName,
+      filters: [{ name: 'PDF Documents', extensions: ['pdf'] }],
+    });
+
+    if (canceled || !filePath) return { canceled: true };
+
+    const win = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        offscreen: true,
+      },
+    });
+
+    await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+    const pdfBuffer = await win.webContents.printToPDF({
+      pageSize: 'A4',
+      landscape: false,
+      printBackground: true,
+    });
+
+    await fs.promises.writeFile(filePath, pdfBuffer);
+    win.destroy();
+
     return { canceled: false, filePath };
   });
 

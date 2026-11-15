@@ -5,8 +5,8 @@ const CalculatorPage = {
   async render(container) {
     container.innerHTML = `
       <div style="margin-bottom: 24px;">
-        <h1 style="font-size: 22px;">Production Material Requirement Calculator</h1>
-        <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Calculate expected raw material and component consumption against current live inventory stock</p>
+        <h1 style="font-size: 22px;">Material Planning</h1>
+        <p style="color: var(--neutral); font-size: 13.5px; margin-top: 4px;">Calculate raw material requirements and verify live stock availability against Bill of Materials</p>
       </div>
 
       <div class="card" style="margin-bottom: 24px; padding: 24px;">
@@ -22,7 +22,7 @@ const CalculatorPage = {
             <div id="calc-product-dropdown" class="card no-scrollbar" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; width: 100%; max-height: 280px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); padding: 4px 0; border: 1px solid var(--border); background: #FFFFFF;"></div>
           </div>
           <div style="flex: 1; min-width: 160px;">
-            <label class="form-label">Planned Production Quantity</label>
+            <label class="form-label">Planned  Quantity</label>
             <input type="number" id="calc-qty-input" class="form-control" value="100" min="1" step="any" required>
           </div>
           <div>

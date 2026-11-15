@@ -4,8 +4,8 @@ const LoginPage = {
       <div style="display: flex; align-items: center; justify-content: center; height: 100%; min-height: 500px;">
         <div class="card" style="width: 100%; max-width: 400px; padding: 36px 32px; box-shadow: var(--shadow-lg);">
           <div style="text-align: center; margin-bottom: 28px;">
-            <h1 style="font-size: 26px; font-weight: 700; color: var(--secondary); margin-bottom: 6px;">StockFlow</h1>
-            <p style="color: var(--neutral); font-size: 13.5px; margin: 0;">Manufacturing Inventory & BOM System</p>
+            <h1 style="font-size: 26px; font-weight: 700; color: var(--secondary); margin-bottom: 6px;">FineTeach</h1>
+            <p style="color: var(--neutral); font-size: 13.5px; margin: 0;"> Inventory System</p>
           </div>
 
           <form id="login-form">

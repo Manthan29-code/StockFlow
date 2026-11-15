@@ -107,16 +107,20 @@ const UsersPage = {
               </td>
               <td>${Format.dateTime(u.createdAt)}</td>
               <td style="text-align: right; white-space: nowrap;">
-                <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
-                  <button class="btn btn-secondary btn-sm toggle-role-btn" data-id="${u.id}" data-role="${u.role}">
-                    Make ${u.role === 'admin' ? 'Staff' : 'Admin'}
-                  </button>
-                  <button class="btn btn-secondary btn-sm toggle-active-btn" data-id="${u.id}" data-active="${u.isActive}">
-                    ${u.isActive ? 'Disable' : 'Enable'}
-                  </button>
-                  <button class="btn btn-secondary btn-sm reset-pwd-btn" data-id="${u.id}">Reset Password</button>
-                  <button class="btn btn-secondary btn-sm delete-user-btn" style="color: var(--error);" data-id="${u.id}" data-username="${u.username}">Delete</button>
-                </div>
+                ${(u.role === 'admin' || u.username === 'admin') ? `
+                  <span style="color: var(--neutral); font-size: 13px; font-weight: 500;">—</span>
+                ` : `
+                  <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                    <button class="btn btn-secondary btn-sm toggle-role-btn" data-id="${u.id}" data-role="${u.role}">
+                      Make Admin
+                    </button>
+                    <button class="btn btn-secondary btn-sm toggle-active-btn" data-id="${u.id}" data-active="${u.isActive}">
+                      ${u.isActive ? 'Disable' : 'Enable'}
+                    </button>
+                    <button class="btn btn-secondary btn-sm reset-pwd-btn" data-id="${u.id}">Reset Password</button>
+                    <button class="btn btn-secondary btn-sm delete-user-btn" style="color: var(--error);" data-id="${u.id}" data-username="${u.username}">Delete</button>
+                  </div>
+                `}
               </td>
             </tr>
           `).join('')}

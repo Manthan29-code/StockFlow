@@ -52,6 +52,110 @@ async function addIncoming(actorId, data) {
       updatedBy: actorId,
     }, tx);
 
+    // Negative Balance Settlement (Approach 1):
+    // Reconcile prior negative entries by transferring overdraft to this new incoming entry
+    const priorEntries = await tx.incomingEntry.findMany({
+      where: {
+        materialId: data.materialId,
+        id: { not: created.id },
+      },
+      include: { outgoingRows: true },
+      orderBy: [{ inDate: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    let newEntryCapacity = toDecimal(data.quantity);
+
+    for (const prior of priorEntries) {
+      if (newEntryCapacity.lte(0)) break;
+
+      const ledger = calculateEntryLedger(
+        { quantity: prior.quantity.toString() },
+        (prior.outgoingRows || []).map((r) => ({
+          outDate: formatDateToYYYYMMDD(r.outDate),
+          rowNo: r.rowNo,
+          qty: r.qty.toString(),
+          pieceWeight: r.pieceWeight ? r.pieceWeight.toString() : null,
+          deducted: r.deducted.toString(),
+        })),
+        material.deductBy
+      );
+
+      const bal = toDecimal(ledger.finalBalance);
+      if (bal.lt(0)) {
+        const deficit = bal.abs();
+        const transferAmount = deficit.lte(newEntryCapacity) ? deficit : newEntryCapacity;
+
+        const sortedPriorRows = [...(prior.outgoingRows || [])].sort((a, b) => b.rowNo - a.rowNo);
+        let amountToTransfer = transferAmount;
+
+        for (const outRow of sortedPriorRows) {
+          if (amountToTransfer.lte(0)) break;
+
+          const rowDeducted = toDecimal(outRow.deducted);
+          const deductTransfer = rowDeducted.lte(amountToTransfer) ? rowDeducted : amountToTransfer;
+
+          if (deductTransfer.equals(rowDeducted)) {
+            await tx.outgoingTransaction.update({
+              where: { id: outRow.id },
+              data: {
+                incomingEntryId: created.id,
+                updatedBy: actorId,
+              },
+            });
+          } else {
+            const newPriorDeducted = rowDeducted.minus(deductTransfer);
+            let newPriorQty;
+            let newPriorTotalWeight = null;
+            if (material.deductBy === 'qty_x_piece_weight' && outRow.pieceWeight) {
+              newPriorQty = newPriorDeducted.dividedBy(toDecimal(outRow.pieceWeight));
+              newPriorTotalWeight = newPriorDeducted.toString();
+            } else {
+              newPriorQty = newPriorDeducted;
+            }
+
+            await tx.outgoingTransaction.update({
+              where: { id: outRow.id },
+              data: {
+                qty: newPriorQty.toString(),
+                totalWeight: newPriorTotalWeight,
+                deducted: newPriorDeducted.toString(),
+                updatedBy: actorId,
+              },
+            });
+
+            let transferQty;
+            let transferTotalWeight = null;
+            if (material.deductBy === 'qty_x_piece_weight' && outRow.pieceWeight) {
+              transferQty = deductTransfer.dividedBy(toDecimal(outRow.pieceWeight));
+              transferTotalWeight = deductTransfer.toString();
+            } else {
+              transferQty = deductTransfer;
+            }
+
+            await tx.outgoingTransaction.create({
+              data: {
+                incomingEntryId: created.id,
+                outDate: outRow.outDate,
+                challanNo: outRow.challanNo,
+                rowNo: 1,
+                qty: transferQty.toString(),
+                pieceWeight: outRow.pieceWeight ? outRow.pieceWeight.toString() : null,
+                specValue: outRow.specValue,
+                totalWeight: transferTotalWeight,
+                deducted: deductTransfer.toString(),
+                createdBy: actorId,
+                updatedBy: actorId,
+              },
+            });
+          }
+
+          amountToTransfer = amountToTransfer.minus(deductTransfer);
+        }
+
+        newEntryCapacity = newEntryCapacity.minus(transferAmount);
+      }
+    }
+
     const rev = await metaRepo.bumpRevision(tx);
     await auditRepo.createAuditEntry({
       userId: actorId,
