@@ -5,7 +5,7 @@ compatibility_date = "2026-11-14"
 compatibility_flags = [ "nodejs_compat" ]
 
 [alias]
-"decimal.js" = "./node_modules/decimal.js/decimal.js"
+"@stockflow/shared" = "./src/shared/index.js"
 
 [[d1_databases]]
 binding = "DB"
