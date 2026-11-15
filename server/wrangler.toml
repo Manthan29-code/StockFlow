@@ -6,6 +6,7 @@ compatibility_flags = [ "nodejs_compat" ]
 
 [alias]
 "@stockflow/shared" = "./src/shared/index.js"
+"decimal.js" = "./node_modules/decimal.js/decimal.js"
 
 [[d1_databases]]
 binding = "DB"
