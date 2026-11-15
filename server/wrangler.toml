@@ -1,4 +1,4 @@
-name = "stockflow-server"
+name = "stockflow"
 account_id = "2651ab36d02d43cceac72b6a239de032"
 main = "src/worker.js"
 compatibility_date = "2026-11-14"
