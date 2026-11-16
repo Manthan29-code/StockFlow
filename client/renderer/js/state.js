@@ -40,10 +40,14 @@ const State = {
         Banner.clear();
       } else if (status === 'reconnecting') {
         text.textContent = 'Reconnecting...';
-        Banner.show('Offline — reconnecting to server. Saving is temporarily disabled.', 'warning');
+        if (this.currentUser && typeof Router !== 'undefined' && Router.currentRoute !== 'login') {
+          Banner.show('Offline — reconnecting to server. Saving is temporarily disabled.', 'warning');
+        }
       } else {
         text.textContent = 'Disconnected';
-        Banner.show('Disconnected from server. Saving is disabled.', 'error');
+        if (this.currentUser && typeof Router !== 'undefined' && Router.currentRoute !== 'login') {
+          Banner.show('Disconnected from server. Saving is disabled.', 'error');
+        }
       }
     }
   },

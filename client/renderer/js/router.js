@@ -63,6 +63,7 @@ const Router = {
     if (path === 'login') {
       sidebar.style.display = 'none';
       header.style.display = 'none';
+      Banner.clear();
     } else {
       sidebar.style.display = 'flex';
       header.style.display = 'flex';

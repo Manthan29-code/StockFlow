@@ -1,5 +1,10 @@
 const Banner = {
   show(message, type = 'error') {
+    // Do not show connection warning banner on login page or when no user is logged in
+    if (!State.currentUser || (typeof Router !== 'undefined' && Router.currentRoute === 'login')) {
+      return;
+    }
+
     const container = document.getElementById('banner-container');
     if (!container) return;
 
