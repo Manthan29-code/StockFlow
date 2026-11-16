@@ -28,7 +28,7 @@ npm install
 ### Step 2: Configure `.env`
 In the `client/` folder, ensure your `.env` file contains your server URL and GitHub Token:
 ```env
-API_BASE_URL=https://stockflow.manthanmovaliya9.workers.dev
+API_BASE_URL=<your backend url>
 GH_TOKEN=ghp_your_github_personal_access_token_here
 ```
 *(Your GitHub token must have the **`repo`** permission selected).*
