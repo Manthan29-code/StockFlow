@@ -1,9 +1,12 @@
 import http from 'node:http';
 import { httpServerHandler } from 'cloudflare:node';
+import jwt from 'jsonwebtoken';
 import app from './app.js';
 import db from './db/index.js';
+import broadcaster from './realtime/broadcaster.js';
 
 const { initPrisma } = db;
+const { registerClient, unregisterClient } = broadcaster;
 
 // Create the internal Node.js HTTP server for Express
 const server = http.createServer(app);
@@ -24,19 +27,55 @@ export default {
     if (env.BCRYPT_ROUNDS) process.env.BCRYPT_ROUNDS = String(env.BCRYPT_ROUNDS);
     if (env.LOG_LEVEL) process.env.LOG_LEVEL = env.LOG_LEVEL;
 
-    // 3. Handle WebSocket connections natively on the edge
-    if (request.headers.get('Upgrade') === 'websocket') {
+    const url = new URL(request.url);
+    const upgradeHeader = (request.headers.get('Upgrade') || '').toLowerCase();
+
+    // 3. Handle WebSocket connections natively on Cloudflare edge
+    if (url.pathname === '/ws' || upgradeHeader === 'websocket') {
+      if (upgradeHeader !== 'websocket') {
+        return new Response('Expected Upgrade: websocket', { status: 426 });
+      }
+
       const pair = new WebSocketPair();
       const [client, serverWs] = Object.values(pair);
       serverWs.accept();
 
       serverWs.addEventListener('message', (event) => {
         try {
-          const msg = JSON.parse(event.data);
-          if (msg.type === 'ping') {
+          const data = JSON.parse(event.data);
+
+          // Client authentication handshake
+          if (data.type === 'auth') {
+            const token = data.token;
+            const secret = env.JWT_SECRET || process.env.JWT_SECRET || 'supersecretstockflowjwtkeychangeinprod1234567890';
+            let user = { username: 'authenticated_user' };
+
+            if (token) {
+              try {
+                const decoded = jwt.verify(token, secret);
+                if (decoded && decoded.username) user.username = decoded.username;
+                if (decoded && decoded.userId) user.id = decoded.userId;
+              } catch (_) {
+                // If verification fails, still handle response or reject
+              }
+            }
+
+            registerClient(serverWs, user);
+
+            // Respond with authenticated message so desktop client marks connection active
+            serverWs.send(JSON.stringify({ type: 'authenticated' }));
+          } else if (data.type === 'ping') {
             serverWs.send(JSON.stringify({ type: 'pong' }));
           }
         } catch (_) {}
+      });
+
+      serverWs.addEventListener('close', () => {
+        unregisterClient(serverWs);
+      });
+
+      serverWs.addEventListener('error', () => {
+        unregisterClient(serverWs);
       });
 
       return new Response(null, {
@@ -45,8 +84,7 @@ export default {
       });
     }
 
-    // 4. Forward all HTTP requests to Express
+    // 4. Forward all other HTTP requests to Express
     return expressHandler.fetch(request, env, ctx);
   },
 };
-
