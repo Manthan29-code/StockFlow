@@ -18,3 +18,17 @@ JWT_SECRET = "supersecretstockflowjwtkeychangeinprod1234567890"
 JWT_EXPIRES_IN = "30d"
 BCRYPT_ROUNDS = "10"
 LOG_LEVEL = "info"
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+invocation_logs = true
+persist = true
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
+persist = true
+
+[observability.issue_detection]
+enabled = true
