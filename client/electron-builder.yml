@@ -4,6 +4,7 @@ publish:
   provider: github
   owner: Manthan29-code
   repo: StockFlow
+  releaseType: release
 directories:
   output: dist
   buildResources: build

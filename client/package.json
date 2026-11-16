@@ -17,7 +17,8 @@
       {
         "provider": "github",
         "owner": "Manthan29-code",
-        "repo": "StockFlow"
+        "repo": "StockFlow",
+        "releaseType": "release"
       }
     ],
     "directories": {
