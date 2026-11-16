@@ -1,6 +1,6 @@
 {
   "name": "@stockflow/client",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "StockFlow Desktop Application",
   "main": "main/main.js",
   "type": "commonjs",
@@ -8,7 +8,7 @@
     "start": "electron .",
     "test": "vitest run",
     "dist": "electron-builder --win",
-    "dist:publish": "electron-builder --win -p always"
+    "dist:publish": "node -r dotenv/config ./node_modules/electron-builder/cli.js --win -p always"
   },
   "build": {
     "appId": "com.stockflow.app",
