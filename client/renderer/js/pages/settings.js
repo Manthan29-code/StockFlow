@@ -23,6 +23,20 @@ const SettingsPage = {
           </div>
         </div>
 
+        <!-- Software Updates -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 class="card-title">Software Updates</h3>
+            <span class="chip chip-neutral" style="font-size: 11px;">v1.0.0</span>
+          </div>
+          <p style="color: var(--neutral); font-size: 13px; margin-bottom: 16px;">
+            StockFlow checks for updates automatically on startup. You can also manually check for the latest release.
+          </p>
+          <button class="btn btn-secondary btn-sm" id="check-updates-btn">
+            Check for Updates
+          </button>
+        </div>
+
         <!-- Automated Local Backup (Admin only) -->
         <div class="card admin-only">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
@@ -81,6 +95,14 @@ const SettingsPage = {
     document.getElementById('start-restore-btn').onclick = () => this.startRestoreFlow();
     document.getElementById('init-schema-btn').onclick = () => this.initializeSchema();
     document.getElementById('save-server-url-btn').onclick = () => this.saveServerUrl();
+
+    const checkUpdatesBtn = document.getElementById('check-updates-btn');
+    if (checkUpdatesBtn && window.api && window.api.checkForUpdates) {
+      checkUpdatesBtn.onclick = () => {
+        window.api.checkForUpdates();
+        Toast.show('Checking for updates...', 'info');
+      };
+    }
 
     await this.loadConfig();
   },

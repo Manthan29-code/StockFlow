@@ -5,6 +5,7 @@ const { registerAllIpc } = require('./ipc');
 const { initSyncManager, start: startSync, stop: stopSync, onStatus, onSyncEvent } = require('./syncManager');
 const { setOnUnauthorized } = require('./httpClient');
 const { initSession } = require('./session');
+const { initUpdater } = require('./updater');
 
 let mainWindow = null;
 
@@ -60,6 +61,9 @@ function createWindow() {
 
   // Register all IPC handlers
   registerAllIpc();
+
+  // Initialize auto-updater
+  initUpdater(mainWindow);
 
   // Initialize Sync Manager
   initSyncManager();

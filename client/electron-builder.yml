@@ -1,5 +1,9 @@
 appId: com.stockflow.app
 productName: StockFlow
+publish:
+  provider: github
+  owner: Manthan29-code
+  repo: StockFlow
 directories:
   output: dist
   buildResources: build

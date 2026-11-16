@@ -44,5 +44,30 @@ contextBridge.exposeInMainWorld('api', {
   runBackupNow: () => ipcRenderer.invoke('backup:runNow'),
   inspectRestoreFile: () => ipcRenderer.invoke('backup:inspectFile'),
   confirmRestore: (filePath) => ipcRenderer.invoke('backup:confirmRestore', { filePath }),
+
+  // Auto-Update functions
+  onUpdateAvailable: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('update:available', handler);
+    return () => ipcRenderer.removeListener('update:available', handler);
+  },
+  onUpdateDownloaded: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('update:downloaded', handler);
+    return () => ipcRenderer.removeListener('update:downloaded', handler);
+  },
+  onUpdateProgress: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('update:progress', handler);
+    return () => ipcRenderer.removeListener('update:progress', handler);
+  },
+  onUpdateError: (callback) => {
+    const handler = (event, data) => callback(data);
+    ipcRenderer.on('update:error', handler);
+    return () => ipcRenderer.removeListener('update:error', handler);
+  },
+  downloadUpdate: () => ipcRenderer.send('update:download'),
+  restartApp: () => ipcRenderer.send('update:restart'),
+  checkForUpdates: () => ipcRenderer.send('update:check'),
 });
 

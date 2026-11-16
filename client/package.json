@@ -7,11 +7,19 @@
   "scripts": {
     "start": "electron .",
     "test": "vitest run",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "dist:publish": "electron-builder --win -p always"
   },
   "build": {
     "appId": "com.stockflow.app",
     "productName": "StockFlow",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Manthan29-code",
+        "repo": "StockFlow"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -31,6 +39,7 @@
     "@stockflow/shared": "file:../shared",
     "decimal.js": "^10.6.0",
     "dotenv": "^18.0.9",
+    "electron-updater": "^6.3.9",
     "exceljs": "^4.4.0",
     "ws": "^8.22.1"
   },
