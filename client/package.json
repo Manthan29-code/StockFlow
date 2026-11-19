@@ -1,6 +1,6 @@
 {
   "name": "@stockflow/client",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "StockFlow Desktop Application",
   "main": "main/main.js",
   "type": "commonjs",
