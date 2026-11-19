@@ -13,14 +13,6 @@
   "build": {
     "appId": "com.stockflow.app",
     "productName": "StockFlow",
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "Manthan29-code",
-        "repo": "StockFlow",
-        "releaseType": "release"
-      }
-    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
