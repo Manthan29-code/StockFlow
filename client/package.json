@@ -3,6 +3,11 @@
   "version": "1.0.2",
   "description": "StockFlow Desktop Application",
   "main": "main/main.js",
+  "author": "Manthan Movaliya",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Manthan29-code/StockFlow.git"
+  },
   "type": "commonjs",
   "scripts": {
     "start": "electron .",
@@ -13,6 +18,14 @@
   "build": {
     "appId": "com.stockflow.app",
     "productName": "StockFlow",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Manthan29-code",
+        "repo": "StockFlow",
+        "releaseType": "release"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -26,7 +39,12 @@
       "allowToChangeInstallationDirectory": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
-    }
+    },
+    "files": [
+      "**/*",
+      "!test/**",
+      "!src/**"
+    ]
   },
   "dependencies": {
     "@stockflow/shared": "file:../shared",
