@@ -1,6 +1,10 @@
 const { prisma } = require('../db');
 
 async function createAuditEntry({ userId, action, entity, entityId, before, after }, client = prisma) {
+  // Only store production_dispatch consistency entries; skip general audit log bloat
+  if (entity !== 'production_dispatch') {
+    return null;
+  }
   return await client.auditLog.create({
     data: {
       userId: userId || null,

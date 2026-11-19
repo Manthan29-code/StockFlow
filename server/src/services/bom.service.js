@@ -384,13 +384,10 @@ async function recordProductionDispatch(actorId, productId, { quantity, outwardN
       entityId: productId,
       after: {
         productId,
-        productName: product.name,
-        partyName: product.party ? product.party.name : '',
         quantity: prodQty.toString(),
         outwardNo: outwardNo.trim(),
         outDate,
         outgoingRowIds: createdOutgoingIds,
-        materialsDeducted: deductionsSummary,
       },
     }, tx);
 
@@ -419,20 +416,27 @@ async function recordProductionDispatch(actorId, productId, { quantity, outwardN
 }
 
 async function listProductionDispatches() {
-  const entries = await prisma.auditLog.findMany({
-    where: { entity: 'production_dispatch', action: 'CREATE' },
-    orderBy: { at: 'desc' },
-  });
+  const [entries, allProducts] = await Promise.all([
+    prisma.auditLog.findMany({
+      where: { entity: 'production_dispatch', action: 'CREATE' },
+      orderBy: { at: 'desc' },
+    }),
+    prisma.product.findMany({
+      include: { party: true },
+    }),
+  ]);
+
+  const productMap = new Map(allProducts.map((p) => [p.id, p]));
 
   const dispatches = [];
   for (const entry of entries) {
     const after = entry.after || {};
-    const product = await productsRepo.findById(after.productId, false);
+    const product = productMap.get(after.productId);
     const partyName = (product && product.party) ? product.party.name : (after.partyName || 'Unknown');
     dispatches.push({
       id: entry.id,
       productId: after.productId,
-      productName: after.productName || (product ? product.name : 'Unknown'),
+      productName: product ? product.name : (after.productName || 'Unknown'),
       partyName,
       plannedQuantity: after.quantity,
       outwardDate: after.outDate,
@@ -679,12 +683,11 @@ async function updateProductionDispatch(actorId, dispatchId, { quantity, outward
     }
 
     const updatedAfter = {
-      ...current,
+      productId,
       quantity: newQty.toString(),
       outwardNo: newOutwardNo,
       outDate: newOutDate,
       outgoingRowIds: updatedOutgoingIds,
-      materialsDeducted: deductionsSummary,
     };
 
     // Update the original CREATE entry's after field so it reflects current state
@@ -692,16 +695,6 @@ async function updateProductionDispatch(actorId, dispatchId, { quantity, outward
       where: { id: dispatchId },
       data: { after: updatedAfter },
     });
-
-    // Create an UPDATE audit entry
-    await auditRepo.createAuditEntry({
-      userId: actorId,
-      action: 'UPDATE',
-      entity: 'production_dispatch',
-      entityId: productId,
-      before: current,
-      after: updatedAfter,
-    }, tx);
 
     const rev = await metaRepo.bumpRevision(tx);
     return { revision: rev, updatedAfter };
@@ -767,14 +760,6 @@ async function deleteProductionDispatch(actorId, dispatchId) {
     await tx.auditLog.delete({
       where: { id: dispatchId },
     });
-
-    await auditRepo.createAuditEntry({
-      userId: actorId,
-      action: 'DELETE',
-      entity: 'production_dispatch',
-      entityId: productId,
-      before: current,
-    }, tx);
 
     const rev = await metaRepo.bumpRevision(tx);
     return { revision: rev };
