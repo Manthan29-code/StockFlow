@@ -52,22 +52,47 @@ Open `client/package.json` and increase the version number:
 ```json
 {
   "name": "@stockflow/client",
-  "version": "1.0.1",
+  "version": "1.0.4",
   ...
 }
 ```
-*(Always use a higher number than the previous version, e.g. `1.0.1` ➔ `1.0.2` ➔ `1.1.0`).*
+*(Always use a higher number than the previous version, e.g. `1.0.3` ➔ `1.0.4` ➔ `1.1.0`).*
 
-### Step 2: Run the Publish Command
+### Step 2: Commit & Push the Git Tag
+Because `releaseType: "release"` is configured (which makes releases **Live immediately** without leaving them stuck in Draft mode), GitHub's security rules require the Git tag to exist on GitHub before publishing:
+
+```powershell
+# From project root:
+git add .
+git commit -m "release: v1.0.4"
+git tag v1.0.4
+git push origin main --tags
+```
+
+### Step 3: Run the Publish Command
 Run this command in the `client/` directory:
 ```powershell
+cd client
 npm run dist:publish
 ```
 
-### What Happens Automatically:
-1. `electron-builder` reads `GH_TOKEN` from your `.env` file.
-2. It compiles the new `.exe` installer.
-3. It generates the update manifest file (`latest.yml`).
-4. It publishes a new official Release directly to your GitHub repository (`Manthan29-code/StockFlow`).
-5. **For Users:** The next time any user launches their installed application, the app detects `latest.yml` on GitHub and automatically shows the **"🚀 A new update is available! [Download Now]"** button at the top of their screen. Once downloaded, clicking **"Restart & Install"** applies the update instantly.
+---
+
+## 3. How Automatic Updates Work Under the Hood
+
+### What `npm run dist:publish` Does:
+1. Reads `GH_TOKEN` securely from `client/.env`.
+2. Compiles the new installer: `StockFlow Setup X.X.X.exe`.
+3. Creates the update manifest file: **`latest.yml`** (containing version number, file paths, and sha512 security hashes).
+4. Publishes a **Live Release** on GitHub (`Manthan29-code/StockFlow`) and uploads:
+   * `StockFlow Setup X.X.X.exe`
+   * `StockFlow Setup X.X.X.exe.blockmap`
+   * `latest.yml`
+
+### What the User Experiences:
+1. **Silent Startup Check:** Whenever a user launches their installed StockFlow application, the app automatically checks `latest.yml` on GitHub after 3 seconds.
+2. **Update Banner:** If a newer version is found, a blue banner slides down at the top:
+   > **🚀 A new update is available (vX.X.X)! `[Download Now]` `[ ✕ ]`**
+3. **Dismiss Option:** If the user clicks `✕` (Close), the banner disappears and does not bother them again until the next time they launch the app.
+4. **1-Click Apply:** If they click **Download Now**, progress is shown (`Downloading... 45%`). Once complete, clicking **Restart & Install** swaps the application to the new version in seconds.
 
