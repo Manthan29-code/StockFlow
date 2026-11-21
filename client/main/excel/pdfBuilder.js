@@ -13,13 +13,8 @@ function formatNum(val) {
   return isNaN(num) ? '' : num.toLocaleString('en-IN', { maximumFractionDigits: 3 });
 }
 
-function getReportTitle(material, isWeightBased) {
-  const rawName = (material.name || '').trim();
-  const suffix = isWeightBased ? 'DISPATCH REPORT' : 'INVENTORY REPORT';
-  if (rawName.toUpperCase().endsWith('REPORT')) {
-    return rawName.toUpperCase();
-  }
-  return `${rawName.toUpperCase()} ${suffix}`;
+function getReportTitle(material) {
+  return (material && material.name ? material.name : '').trim().toUpperCase();
 }
 
 function buildMaterialPdfHtml(material, entriesWithLedger = []) {
@@ -29,7 +24,7 @@ function buildMaterialPdfHtml(material, entriesWithLedger = []) {
   const specLabel = material.specLabel || 'TL';
   const specColWidth = Math.max((specLabel || '').length + 2, 8);
 
-  const reportTitle = getReportTitle(material, isWeightBased);
+  const reportTitle = getReportTitle(material);
 
   let totalInQty = 0;
   let totalDeducted = 0;

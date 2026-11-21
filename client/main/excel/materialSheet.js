@@ -16,13 +16,8 @@ function parseNumber(val) {
   return isNaN(num) ? null : num;
 }
 
-function getReportTitle(material, isWeightBased) {
-  const rawName = (material.name || '').trim().toUpperCase();
-  const suffix = isWeightBased ? 'DISPATCH REPORT' : 'INVENTORY REPORT';
-  if (rawName.endsWith('REPORT')) {
-    return rawName;
-  }
-  return `${rawName} ${suffix}`;
+function getReportTitle(material) {
+  return (material && material.name ? material.name : '').trim().toUpperCase();
 }
 
 /**
@@ -54,7 +49,7 @@ function createMaterialWorkbook(material, entriesWithLedger = []) {
   }
 
   // 1. Title Row
-  const reportTitle = getReportTitle(material, isWeightBased);
+  const reportTitle = getReportTitle(material);
   const titleRow = sheet.addRow([reportTitle]);
   titleRow.font = { bold: true, size: 14 };
   titleRow.alignment = { horizontal: 'center' };
