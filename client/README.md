@@ -58,23 +58,20 @@ Open `client/package.json` and increase the version number:
 ```
 *(Always use a higher number than the previous version, e.g. `1.0.3` ➔ `1.0.4` ➔ `1.1.0`).*
 
-### Step 2: Commit & Push the Git Tag
-Because `releaseType: "release"` is configured (which makes releases **Live immediately** without leaving them stuck in Draft mode), GitHub's security rules require the Git tag to exist on GitHub before publishing:
-
-```powershell
-# From project root:
-git add .
-git commit -m "release: v1.0.4"
-git tag v1.0.4
-git push origin main --tags
-```
-
-### Step 3: Run the Publish Command
+### Step 2: Run the 1-Step Automated Publish Command
 Run this command in the `client/` directory:
 ```powershell
 cd client
 npm run dist:publish
 ```
+
+### What It Does Automatically (100% Through Code):
+1. Reads `GH_TOKEN` securely from `client/.env`.
+2. Compiles the installer: `StockFlow Setup X.X.X.exe`.
+3. Compiles the blockmap: `StockFlow Setup X.X.X.exe.blockmap`.
+4. Compiles the update manifest: `latest.yml`.
+5. Connects to GitHub API, creates the Release live, and uploads all 3 files sequentially.
+6. Zero manual clicks, zero drag-and-drop, zero draft delays! All user apps will instantly see the new update.
 
 ---
 
